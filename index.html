@@ -3302,13 +3302,43 @@ function continuationChapterFor(id,ending){
  if(CONTINUATION_CHAPTERS[ending])return CONTINUATION_CHAPTERS[ending];
  const record=POST_STORY[ending],name=CAMPAIGNS[id].name;
  if(!record)return null;
+ const continuations={
+  asterion:{
+   signal:'The signal is a page from a shipping ledger, but someone has written names in the margins. Mine is there. So are names I do not know. At the bottom: “There are still people looking.”',
+   response:'I could answer Ianthe with one sentence. Or I could leave the page where it is and pretend it did not find me. Neither feels clean.',
+   protect:'Then I will keep the page and choose the hour myself. That is different from hiding it. I am trying to learn the difference.'
+  },
+  medusa:{
+   signal:'The signal is a copied testimony. Not a legend, not a prayer. Someone recorded what they saw at the temple, then crossed out the part where they called me a monster.',
+   response:'I can send back a correction, but I will not hand someone my whole life just because they finally asked for it.',
+   protect:'Then I will decide what belongs to me before I decide what belongs in their record. I have spent enough time being edited by other people.'
+  },
+  echo:{
+   signal:'The signal is not a voice exactly. It is three versions of the same sentence, each with one word missing. The missing word is different every time.',
+   response:'If I answer, the record may stabilize around whatever I choose. That is not the same as being understood.',
+   protect:'Then I will not fill the blank just because the archive dislikes silence. A gap can still mean something.'
+  }
+ };
+ const voice=continuations[id]||continuations.asterion;
  return {start:{text:record.lead+'\n\nSomething changed after the last message. I am still deciding what to do with it.',choices:[
-  {t:'What changed after the ending?',r:'It is not one thing. That is the trouble. People, records, and old stories all kept moving after I thought the important moment was finished. I need to choose what I answer next.',next:'next'},
-  {t:'What do you want to do now?',r:'I want a future that is not built around explaining the ending to strangers. I do not know how to make one yet, but I am no longer waiting for permission to begin.',next:'next'},
-  {t:'We do not have to force a plan tonight.',r:'All right. Then this can be a beginning without pretending it is a solution. I can work with that.',next:'next'}]},
-  next:{text:'A new signal came in. It is connected to what happened, but it is not the old story repeating itself. I have not decided whether I am ready to answer it.',choices:[
-   {t:'Read it with me.',r:'Together, then. Slowly. I am done letting urgency choose the shape of my life.',next:'next'},
-   {t:'What do you need before the next step?',r:'Someone to remember that I am more than the ending you recovered. That is enough for tonight. Tomorrow, I move again.',next:'next'}]}};
+  {t:'What changed after the ending?',r:'It is not one thing. That is the trouble. People, records, and old stories all kept moving after I thought the important moment was finished. I need to choose what I answer next.',next:'signal'},
+  {t:'What do you want to do now?',r:'I want a future that is not built around explaining the ending to strangers. I do not know how to make one yet, but I am no longer waiting for permission to begin.',next:'signal'},
+  {t:'We do not have to force a plan tonight.',r:'All right. Then this can be a beginning without pretending it is a solution. I can work with that.',next:'signal'}]},
+  signal:{text:'A new signal came in. It is connected to what happened, but it is not the old story repeating itself. I have not decided whether I am ready to answer it.',choices:[
+   {t:'Read it with me.',r:'Together, then. Slowly. I am done letting urgency choose the shape of my life.',next:'read'},
+   {t:'What do you need before the next step?',r:'I need to know the next step is mine to name. After that, I can decide whether to take it.',next:'protect'}]},
+  read:{text:voice.signal,choices:[
+   {t:'Answer, but only with what you are ready to say.',r:voice.response,next:'answer'},
+   {t:'Keep the signal. You do not owe it an answer tonight.',r:voice.protect,next:'protect'},
+   {t:'What part of it feels most dangerous?',r:'Not the words themselves. It is the fact that the world can reach me again. I want that, and I do not. Both are true.',next:'answer'}]},
+  answer:{text:'The channel is quiet now, but not closed. I have a choice to make before it becomes someone else’s version of my life.',choices:[
+   {t:'Write one line that is true, and stop there.',r:'One line, then. No performance. No confession I cannot take back. I can live with that.',next:'rest'},
+   {t:'Wait until tomorrow. The decision does not become less real because you sleep first.',r:'That may be the first useful thing anyone has said about urgency. I will wait until tomorrow.',next:'rest'}]},
+  protect:{text:'For tonight, the signal can remain unanswered. That is not the same thing as surrendering it.',choices:[
+   {t:'Keep the channel open. Come back when you choose.',r:'I will. And when I do, I want us to start from this choice, not from the ending everyone else thinks they know.',next:'rest'},
+   {t:'What can I remember for you?',r:'Remember that I hesitated and stayed. Do not turn that into a moral. Just remember it happened.',next:'rest'}]},
+  rest:{text:'The story has moved, even if it has not finished. The channel remains open for what comes next.',choices:[
+   {t:'Return to the Story Vault for now.',r:'All right. Do not mistake quiet for an ending.',next:'rest'}]}};
 }
 function openPostContact(id){
  activePostCampaign=id;
@@ -3321,6 +3351,7 @@ function openPostContact(id){
  document.getElementById('postChat').innerHTML='';
  delete document.getElementById('postChat').dataset.continuationStage;
  document.getElementById('postChoices').innerHTML='';
+ refreshContactIdentity(true);
  showScreen('postChatScreen');
  if(!save.postVisits)save.postVisits={};
  save.postVisits[id]=(save.postVisits[id]||0)+1;

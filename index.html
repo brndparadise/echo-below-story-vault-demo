@@ -3338,7 +3338,7 @@ function continuationChapterFor(id,ending){
    {t:'Keep the channel open. Come back when you choose.',r:'I will. And when I do, I want us to start from this choice, not from the ending everyone else thinks they know.',next:'rest'},
    {t:'What can I remember for you?',r:'Remember that I hesitated and stayed. Do not turn that into a moral. Just remember it happened.',next:'rest'}]},
   rest:{text:'The story has moved, even if it has not finished. The channel remains open for what comes next.',choices:[
-   {t:'Return to the Story Vault for now.',r:'All right. Do not mistake quiet for an ending.',next:'rest'}]}};
+   {t:'Return to the Story Vault for now.',r:'All right. Do not mistake quiet for an ending.',action:'home'}]}};
 }
 function openPostContact(id){
  activePostCampaign=id;
@@ -3378,6 +3378,7 @@ function renderContinuationChapter(id,ending,chapter){
 async function chooseContinuationChapter(id,ending,chapter,stage,index){
  const scene=chapter[stage],choice=scene.choices[index];document.querySelectorAll('#postChoices .choice').forEach(button=>button.disabled=true);postAddMsg('you',choice.t);
  const typingNode=document.createElement('div');typingNode.className='msg them';typingNode.dataset.speaker=CAMPAIGNS[id].name;typingNode.innerHTML='<span class="typing"><span class="typing-label">typing</span><i></i><i></i><i></i></span>';document.getElementById('postChat').appendChild(typingNode);await wait(replyTypingDelay(choice.r));typingNode.remove();postAddMsg('them',choice.r);
+ if(choice.action==='home'){persist();await wait(520);showScreen('home');return}
  if(!save.continuations)save.continuations={};save.continuations[ending]=choice.next;persist();await wait(350);renderContinuationChapter(id,ending,chapter);
 }
 function renderPostTopics(id){

@@ -3004,7 +3004,7 @@ function updateStats(){
  document.getElementById('sSecret').textContent=save.secret?'OPEN':listener.contacts===3?listener.fragments+' / 6':'LOCKED';
  const secretLabel=document.getElementById('sSecretLabel');
  if(secretLabel)secretLabel.textContent=save.secret?'listener record':listener.contacts<3?'listener record · complete all threads':'listener record · recover 6 fragments';
- ['asterion','medusa','echo'].forEach(id=>{const b=document.getElementById('after'+id[0].toUpperCase()+id.slice(1));if(!b)return;const count=(save.history||[]).filter(x=>x.campaign===id).length;b.classList.toggle('available',count>0);if(count>0)b.textContent=count===1?'Talk after':'Talk again · '+count;});
+ ['asterion','medusa','echo'].forEach(id=>{const b=document.getElementById('after'+id[0].toUpperCase()+id.slice(1));if(!b)return;const count=(save.history||[]).filter(x=>x.campaign===id).length;b.classList.toggle('available',count>0);if(count>0)b.textContent='Talk again';});
  updateEchoAccess();
 }
 function startCampaign(id){

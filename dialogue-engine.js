@@ -19,7 +19,7 @@
       id:'asterion_opening_001',character:'asterion',speaker:'asterion',delay:720,
       text:'Are you there? I heard footsteps again. They stopped outside the bend, but they have not left.',
       choices:[
-        {id:'ask_footsteps',text:'Where did they come from?',intent:'investigate',effects:{trust:3,openness:4,suspicion:-2},memoryTags:['player_investigates'],reply:'The west passage. I know that much. I do not know whether they want me to know they are there.',nextNode:'asterion_footsteps_002'},
+        {id:'ask_footsteps',text:'Where did they come from?',intent:'investigate',effects:{trust:3,openness:4,suspicion:-2},memoryTags:['player_investigates'],reply:'Close enough that whoever it is knows I can hear them. They stopped where the corridor turns.',nextNode:'asterion_footsteps_002'},
         {id:'reassure_without_command',text:'You do not have to face them before you decide you are ready.',intent:'encourage_independence',effects:{trust:4,autonomy:5,fear:-4},memoryTags:['player_respects_pace'],reply:'Ready is not a word the maze has ever offered me. I might like it anyway.',nextNode:'asterion_boundaries_003'},
         {id:'dismiss_fear',text:'You are probably imagining it. Do not make this bigger than it is.',intent:'deflect',effects:{trust:-9,fear:7,suspicion:8,openness:-8},memoryTags:['player_dismissed_fear'],reply:'If I am wrong, then I am wrong alone. That is apparently familiar.',nextNode:'asterion_withdrawal_004'},
         {id:'opening_silence',text:'Stay silent for a moment.',intent:'remain_silent',effects:{fear:2,reliance:-2},memoryTags:['player_chose_silence'],reply:'... They have not moved. I can hear cloth against the wall.',nextNode:'asterion_silence_005'}
@@ -289,7 +289,7 @@
       choices:[
         {id:'map_missing_room',text:'Map around it first. Learn the shape of the missing thing.',intent:'investigate',effects:{trust:4,autonomy:4,openness:3},memoryTags:['player_mapped_missing_room'],reply:'Study the hole instead of jumping into it. Rude. Smart.',nextNode:'echo_returning_006'},
         {id:'open_by_choice',text:'Open it if you want to know, not because the system dared you.',intent:'encourage_independence',effects:{trust:5,autonomy:8,selfPerception:5},memoryTags:['player_returned_choice_to_echo'],reply:'Choice before curiosity. I am trying to remember that order.',nextNode:'echo_returning_006'},
-        {id:'leave_door',text:'You can walk away if the only reason to enter is that it told you not to.',intent:'encourage_independence',effects:{trust:4,autonomy:7,fear:-3},memoryTags:['player_allowed_echo_exit'],reply:'Permission to walk away. The Archive never suggests that option.',nextNode:'echo_outcome_forgotten_010'}
+        {id:'leave_door',text:'You can walk away if the only reason to enter is that it told you not to.',intent:'encourage_independence',effects:{trust:4,autonomy:7,fear:-3},memoryTags:['player_allowed_echo_exit'],reply:'The warning changed when you said that. It stopped calling departure a failure.',nextNode:'echo_outcome_forgotten_010'}
       ]
     },
     echo_returning_006:{

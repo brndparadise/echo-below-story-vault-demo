@@ -1,4 +1,4 @@
-const CACHE_NAME='echo-below-story-vault-lifeline-v8';
+const CACHE_NAME='echo-below-story-vault-lifeline-v9';
 
 self.addEventListener('install',event=>{
   event.waitUntil(self.skipWaiting());

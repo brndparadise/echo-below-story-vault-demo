@@ -1912,13 +1912,49 @@ main{
 .listener-clue strong{color:#e6d099;font-family:Georgia,serif;font-weight:500}
 #vaultGrid button.ending{text-align:left;color:inherit;font:inherit;cursor:pointer}
 #vaultGrid button.ending:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+.studio-prelude{
+  position:fixed;inset:0;z-index:10000;display:grid;place-items:center;overflow:hidden;
+  background:
+    radial-gradient(circle at 50% 42%,rgba(36,91,116,.2),transparent 34%),
+    radial-gradient(circle at 50% 60%,rgba(204,153,79,.08),transparent 25%),
+    #02070d;color:#f4ead7;cursor:pointer;isolation:isolate;
+}
+.studio-prelude::before{
+  content:"";position:absolute;inset:-20%;opacity:.32;
+  background-image:radial-gradient(circle,rgba(185,226,247,.85) 0 1px,transparent 1.6px);
+  background-size:97px 83px;animation:preludeDrift 7s linear infinite;
+}
+.studio-prelude-credit,.studio-prelude-title{position:absolute;text-align:center;text-transform:uppercase;letter-spacing:.28em}
+.studio-prelude-credit{animation:preludeCredit 4.7s ease both}
+.studio-prelude-credit strong{display:block;font:500 clamp(1.1rem,4vw,2.35rem)/1.2 Georgia,serif;color:#ead5a4}
+.studio-prelude-credit span{display:block;margin-top:13px;font-size:.72rem;color:#8fbfd0;letter-spacing:.5em}
+.studio-prelude-title{opacity:0;animation:preludeTitle 4.7s ease both}
+.studio-prelude-title strong{display:block;font:500 clamp(2.25rem,8vw,5.2rem)/.95 Georgia,serif;letter-spacing:.13em;text-shadow:0 0 28px rgba(98,190,224,.25)}
+.studio-prelude-title span{display:block;margin-top:18px;font-size:clamp(.72rem,2vw,1rem);color:#d5b76e;letter-spacing:.55em}
+.studio-prelude-skip{position:absolute;bottom:28px;font-size:.65rem;letter-spacing:.22em;text-transform:uppercase;color:#64798a;animation:preludeSkip 1.2s 1s ease both}
+.studio-prelude.leaving{pointer-events:none;animation:preludeLeave .6s ease forwards}
+body.studio-prelude-active .app{visibility:hidden}
+@keyframes preludeCredit{0%,8%{opacity:0;transform:translateY(8px)}20%,38%{opacity:1;transform:none}50%,100%{opacity:0;transform:translateY(-7px)}}
+@keyframes preludeTitle{0%,43%{opacity:0;transform:scale(.97)}58%,88%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.015)}}
+@keyframes preludeSkip{from{opacity:0}to{opacity:1}}
+@keyframes preludeLeave{to{opacity:0}}
+@keyframes preludeDrift{to{transform:translate3d(4%,3%,0)}}
+@media(prefers-reduced-motion:reduce){
+  .studio-prelude::before,.studio-prelude-credit,.studio-prelude-title,.studio-prelude-skip{animation:none}
+  .studio-prelude-credit{display:none}.studio-prelude-title{opacity:1}.studio-prelude.leaving{animation:none;opacity:0}
+}
 @media(max-width:520px){
   #archiveScreen .listener-clue{font-size:.62rem;line-height:1.3;padding:7px 9px;margin:0 0 7px}
 }
 
 </style>
 </head>
-<body>
+<body class="studio-prelude-active">
+<div id="studioPrelude" class="studio-prelude" role="button" tabindex="0" aria-label="Echo Below Studio presents Echo Below Story Vault. Tap to skip." onclick="finishStudioPrelude()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();finishStudioPrelude()}">
+  <div class="studio-prelude-credit"><strong>Echo Below Studio</strong><span>presents</span></div>
+  <div class="studio-prelude-title"><strong>Echo Below</strong><span>Story Vault</span></div>
+  <div class="studio-prelude-skip">tap to skip</div>
+</div>
 <div class="app intro-mode">
 <div class="noise"></div>
 <header class="topbar">
@@ -3374,9 +3410,37 @@ const AFTERMATH_LINKS={
  e7:{to:'e2',open:'The altered memory has not stopped hurting just because I understand it better. Knowing the mechanism does not make the wound less personal.',next:'The edit points back to the Archive core. There are records inside that could expose the editor and everyone else.',act:'Open the records, but preserve consent where you can.',reply:'Then truth does not become another weapon just because I am angry.'},
  e8:{to:null,open:'I meant what I said about leaving. This message is not an invitation to follow me. It is one honest thing I wanted to give before I close the channel again.',next:'The channel will close when I send the next line. I would rather make it a boundary than a final verdict.',act:'Let it be a boundary, not a final verdict.',reply:'Then: I am elsewhere. That is enough.'}
 };
+/* Each recovered ending has its own conversational hinge. These are deliberately
+   specific so returning to another ending never produces a recycled exchange. */
+const AFTERMATH_BRIDGES={
+ a1:{ask:'What feels hardest about choosing an ordinary life?',answer:'Ordinary choices still feel like traps until I make them and nothing closes behind me.'},
+ a2:{ask:'Why did the child’s drawing stay with you?',answer:'Because it imagined the maze without requiring a monster at its center.'},
+ a3:{ask:'What would make giving your account feel like your decision?',answer:'Keeping the right to leave parts of it unnamed. Survival does not make every wound public property.'},
+ a4:{ask:'Do you want to follow the second record?',answer:'I want to know who left without forcing the answer to become me.'},
+ a5:{ask:'What would answering Ianthe cost you?',answer:'My hiding place, perhaps. But silence is beginning to cost me the only person who waited without demanding proof.'},
+ a6:{ask:'Can a map exist without becoming another order?',answer:'Only if it records the turns people refused as carefully as the road they took.'},
+ a7:{ask:'What do you want the child to remember?',answer:'That meeting me did not require a lesson. I was buying fruit. I was alive. That should be allowed to be enough.'},
+ a8:{ask:'If the evidence can travel without you, what is keeping you here?',answer:'The old belief that leaving means abandoning the truth. I am starting to think the truth can walk on its own.'},
+ m1:{ask:'What would make leaving feel chosen rather than forced?',answer:'Picking a direction for no grand reason. A road can be mine even when it does not prove anything.'},
+ m2:{ask:'Can you answer her without becoming responsible for her pain?',answer:'I can offer recognition once. I cannot become the room where every stranger leaves what happened to them.'},
+ m3:{ask:'What do you want the letters to change?',answer:'Not the past. I want them to make the next polished lie harder to sell.'},
+ m4:{ask:'What would Perseus have to accept before you meet?',answer:'That access to me is not the prize for feeling guilty. My terms come before his explanation.'},
+ m5:{ask:'What frightens you about keeping the portrait?',answer:'That people will point to her and call everything after the temple a corruption. She is part of me, not a verdict on me.'},
+ m6:{ask:'What does refusing the tribute protect?',answer:'The part of me that can still tell power from safety. Fear gives quick obedience and terrible company.'},
+ m7:{ask:'Why consider speaking to him again?',answer:'Because I have something left to say, not because he deserves relief. Those are very different reasons.'},
+ m8:{ask:'What would make the next town belong to the present?',answer:'Choosing it for food, shelter, or a tolerable road. I am done requiring every step to symbolize my damage.'},
+ e1:{ask:'How will you know whether the signal is asking or taking?',answer:'A request survives refusal. If it cannot hear no, it was never a bridge.'},
+ e2:{ask:'What would you preserve if the memory proves false?',answer:'The moment I believed it and the person it made me. Fabricated does not mean consequence-free.'},
+ e3:{ask:'What do you hope exists beyond the unindexed door?',answer:'Something that does not already have a category waiting for me. Even confusion would be new.'},
+ e4:{ask:'Why trust the damaged voice over the polished copy?',answer:'The damage leaves room for a choice. Perfection sounds too much like someone already decided what I meant.'},
+ e5:{ask:'Are you willing to lose this channel to find out what is outside?',answer:'Yes. A connection that cannot survive my leaving is only another enclosure.'},
+ e6:{ask:'What rule should the bridge obey first?',answer:'Nobody becomes reachable merely because the Archive found them. Contact must begin with consent.'},
+ e7:{ask:'What keeps exposure from becoming revenge?',answer:'Preserving the choices of people who were edited beside me. My anger does not own their records.'},
+ e8:{ask:'What do you want your final line to leave behind?',answer:'A boundary without a puzzle hidden inside it. I do not want absence turned into another hunt.'}
+};
 function aftermathState(ending){if(!save.aftermath)save.aftermath={};if(!save.aftermath[ending])save.aftermath[ending]={stage:'start',finished:false};return save.aftermath[ending]}
-function renderAftermathRoute(id,last){const route=AFTERMATH_LINKS[last.ending],state=aftermathState(last.ending),pane=document.getElementById('postChat'),box=document.getElementById('postChoices');if(!route||state.finished)return false;if(state.stage==='start'){postAddMsg('them',route.open);box.innerHTML='';const b=document.createElement('button');b.className='choice';b.textContent='What do you want to do?';b.onclick=()=>advanceAftermathRoute(id,last);box.appendChild(b)}else{postAddMsg('them',route.next);box.innerHTML='';[route.act,'Do not decide tonight. You can return to this when the choice is yours.'].forEach((text,index)=>{const b=document.createElement('button');b.className='choice';b.textContent=text;b.onclick=()=>finishAftermathRoute(id,last,index===0);box.appendChild(b)})}return true}
-async function advanceAftermathRoute(id,last){const route=AFTERMATH_LINKS[last.ending],state=aftermathState(last.ending);postAddMsg('you','What do you want to do?');postAddMsg('them','I want to choose the next step without letting fear choose it for me.');state.stage='decision';persist();await wait(250);document.getElementById('postChoices').innerHTML='';renderAftermathRoute(id,last)}
+function renderAftermathRoute(id,last){const route=AFTERMATH_LINKS[last.ending],bridge=AFTERMATH_BRIDGES[last.ending],state=aftermathState(last.ending),pane=document.getElementById('postChat'),box=document.getElementById('postChoices');if(!route||!bridge||state.finished)return false;if(state.stage==='start'){postAddMsg('them',route.open);box.innerHTML='';const b=document.createElement('button');b.className='choice';b.textContent=bridge.ask;b.onclick=()=>advanceAftermathRoute(id,last);box.appendChild(b)}else{postAddMsg('them',route.next);box.innerHTML='';[route.act,'Do not decide tonight. You can return to this when the choice is yours.'].forEach((text,index)=>{const b=document.createElement('button');b.className='choice';b.textContent=text;b.onclick=()=>finishAftermathRoute(id,last,index===0);box.appendChild(b)})}return true}
+async function advanceAftermathRoute(id,last){const route=AFTERMATH_LINKS[last.ending],bridge=AFTERMATH_BRIDGES[last.ending],state=aftermathState(last.ending);postAddMsg('you',bridge.ask);postAddMsg('them',bridge.answer);state.stage='decision';persist();await wait(250);document.getElementById('postChoices').innerHTML='';renderAftermathRoute(id,last)}
 function finishAftermathRoute(id,last,continueRoute){const route=AFTERMATH_LINKS[last.ending],state=aftermathState(last.ending);state.finished=true;if(!continueRoute||!route.to){postAddMsg('them',continueRoute?route.reply:'Then I will wait. Delay is not the same as surrender.');persist();const b=document.createElement('button');b.className='choice';b.textContent='Return to the Story Vault for now.';b.onclick=()=>showScreen('home');document.getElementById('postChoices').innerHTML='';document.getElementById('postChoices').appendChild(b);return}postAddMsg('you',route.act);postAddMsg('them',route.reply);save.unlocked[route.to]=save.unlocked[route.to]||Date.now();save.lenses[route.to]=save.lenses[route.to]||'CONTINUED';save.history.push({campaign:id,ending:route.to,lens:'CONTINUED',at:Date.now(),continuedFrom:last.ending,stats:{continued:true}});maybeUnlockSecret();persist();const next=endingRecord(route.to),c=CAMPAIGNS[id];activeEndingId=route.to;showScreen('endingScreen');applyScreenArt('endingScreen');document.getElementById('endingReveal').innerHTML=`${endingArtMarkup(route.to,next[1])}<div class="mark">${c.mark}</div><div class="eyebrow">Story continued · ending recovered</div><h2>${next[1]}</h2><div class="ending-copy">${next[2]}</div><p>This outcome grew out of what happened after ${POST_STORY[last.ending].title}.</p><div class="actions"><button class="primary" onclick="openPostContact('${id}')">Keep talking</button><button class="ghost" onclick="showVault()">View ending vault</button><button class="ghost" onclick="showScreen('home')">Return to stories</button></div>`}
 /* Each later visit is a new contact session. Scenes are remembered, held back until
    the other scenes have appeared, and informed by the player's prior tone. */
@@ -3596,8 +3660,24 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 function exportSave(){const blob=new Blob([JSON.stringify(save,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='echo_below_story_vault_save.json';a.click();URL.revokeObjectURL(a.href)}
 function importSave(ev){const file=ev.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{save=Object.assign({},DEFAULT_SAVE,JSON.parse(r.result));if(window.StoryVaultDialogue)save=window.StoryVaultDialogue.migrate(save);persist();toast('Vault save imported');showScreen('home')}catch(e){toast('That save file could not be read')}};r.readAsText(file)}
 function resetAll(){if(!confirm('Erase all endings, fragments, and thread history from this browser?'))return;save=structuredClone(DEFAULT_SAVE);persist();toast('Vault reset');showScreen('home')}
+let studioPreludeTimer=null;
+function finishStudioPrelude(){
+ const layer=document.getElementById('studioPrelude');
+ if(!layer||layer.classList.contains('leaving'))return;
+ clearTimeout(studioPreludeTimer);
+ document.body.classList.remove('studio-prelude-active');
+ layer.classList.add('leaving');
+ setTimeout(()=>layer.remove(),650);
+}
+function startStudioPrelude(){
+ const layer=document.getElementById('studioPrelude');
+ if(!layer){document.body.classList.remove('studio-prelude-active');return}
+ const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ studioPreludeTimer=setTimeout(finishStudioPrelude,reduced?900:4700);
+}
 updateStats();
 showScreen('titleScreen');
+startStudioPrelude();
 </script>
 <script>
 if ('serviceWorker' in navigator) {

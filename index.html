@@ -3198,13 +3198,18 @@ function renderFreeformComposer(node,choices,{showSuggestions=false,note=''}={})
 }
 async function submitTypedReply(raw,forcedChoiceId){
  const text=String(raw||'').trim();if(!text)return;
- const Engine=window.StoryVaultDialogue,character=engineCharacter(),node=Engine.NODES[run.engineNode],choices=Engine.available(node,character),choice=forcedChoiceId?choices.find(item=>item.id===forcedChoiceId):interpretTypedChoice(text,choices);
+ const Engine=window.StoryVaultDialogue,character=engineCharacter(),node=Engine.NODES[run.engineNode],choices=Engine.available(node,character),grounded=Engine.resolveGroundedTurn?Engine.resolveGroundedTurn(node,character,text):null,choice=grounded&&grounded.type==='choice'?choices.find(item=>item.id===grounded.choiceId):(forcedChoiceId?choices.find(item=>item.id===forcedChoiceId):interpretTypedChoice(text,choices));
  clearFreeformTimers();document.querySelectorAll('#choices button,#choices textarea').forEach(control=>control.disabled=true);addMsg('you',text);
+ if(grounded&&grounded.type==='stay'){
+  const state=Engine.conversationState(character);state.pendingQuestion=grounded.pendingQuestion||null;state.lastInterpretation={text,acts:grounded.analysis.acts,topics:grounded.analysis.topics,nodeId:node.id};
+  Engine.recordConversationTurn(character,node,grounded.analysis,{tags:grounded.tags||[],unresolved:!!grounded.pendingQuestion,interpretation:grounded.analysis.acts.concat(grounded.analysis.topics).join(':')});persist();
+  const t=typing();await wait(replyTypingDelay(grounded.reply));t.remove();addMsg('them',grounded.reply);renderFreeformComposer(node,choices);alignChatToMessageBoundary();return;
+ }
  if(!choice){
   const lines=CLARIFY_LINES[run.id]||CLARIFY_LINES.echo,line=lines[(character.clarifications||0)%lines.length];character.clarifications=(character.clarifications||0)+1;character.memory.push({id:'unresolved_input',nodeId:node.id,character:run.id,intent:'unclear',statement:text,tags:['player_input_unclear'],at:Date.now(),storyTime:character.history.length+1,state:structuredClone(character.state),referenced:false,unresolved:true});persist();
   const t=typing();await wait(replyTypingDelay(line));t.remove();addMsg('them',line);renderFreeformComposer(node,choices,{showSuggestions:true,note:'The signal could not confidently read your intent. Nothing was chosen for you.'});return;
  }
- await chooseEngine(choice.id,text,true);
+ await chooseEngine(choice.id,text,true,grounded||{});
 }
 function startEngineCampaign(id){
  const Engine=window.StoryVaultDialogue;
@@ -3213,7 +3218,7 @@ function startEngineCampaign(id){
  if(campaignId==='echo')syncEchoCrossCampaignMemory();
  const resuming=!!(active&&active.campaign===campaignId&&Engine.NODES[active.node]);
  if(!save.dialogue.visits)save.dialogue.visits={};
- if(!resuming){save.dialogue.visits[campaignId]=(save.dialogue.visits[campaignId]||0)+1;character.sessionStartedAt=Date.now();}
+ if(!resuming){save.dialogue.visits[campaignId]=(save.dialogue.visits[campaignId]||0)+1;character.sessionStartedAt=Date.now();Engine.conversationState(character).pendingQuestion=null;}
  const visitNumber=save.dialogue.visits[campaignId]||1;
  activeEndingId=null;
  run={id:campaignId,engine:true,engineNode:resuming?active.node:campaignId+'_opening_001',visitNumber,branch:null,inquiries:{},stats:{trust:0,self:0,nuance:0,autonomy:0,reliance:0,fear:0,suspicion:0,ariadne:0,theseus:0,escape:0,return:0,cut:0,evidence:0,testimony:0,sisters:0,monster:0,mirror:0,confront:0,archive:0,burn:0,false:0,room:0,open:0,bridge:0,leave:0},flags:{},log:[]};
@@ -3248,18 +3253,20 @@ async function renderEngineNode(){
  }else renderFreeformComposer(node,choices);
  alignChatToMessageBoundary();
 }
-async function chooseEngine(choiceId,playerText,alreadyAdded=false){
+async function chooseEngine(choiceId,playerText,alreadyAdded=false,grounded={}){
  const Engine=window.StoryVaultDialogue,character=engineCharacter(),node=Engine.NODES[run.engineNode],choice=Engine.available(node,character).find(item=>item.id===choiceId);
  if(!choice)return;
  clearFreeformTimers();
  document.querySelectorAll('.choice').forEach(button=>button.disabled=true);
  if(!alreadyAdded)addMsg('you',choice.intent==='remain_silent'?'…':(playerText||choice.text));
- const actualText=playerText||choice.text,memory=Engine.applyChoice(character,node,choice,actualText);run.log.push({nodeId:node.id,choiceId:choice.id,text:actualText,memoryId:memory.at});
- if(choice.reply){const replyTyping=typing();await wait(replyTypingDelay(choice.reply));replyTyping.remove();addMsg('them',choice.reply)}
+ const actualText=playerText||choice.text,memory=Engine.applyChoice(character,node,choice,actualText);if(grounded.analysis)memory.analysis={acts:grounded.analysis.acts,topics:grounded.analysis.topics};run.log.push({nodeId:node.id,choiceId:choice.id,text:actualText,memoryId:memory.at});
+ const reply=grounded.reply||choice.reply;if(reply){const replyTyping=typing();await wait(replyTypingDelay(reply));replyTyping.remove();addMsg('them',reply)}
  run.engineNode=choice.nextNode;const next=Engine.NODES[run.engineNode];Engine.enter(character,next);persist();
+ const conversation=Engine.conversationState(character);conversation.pendingQuestion=grounded.pendingQuestion||null;if(grounded.analysis)conversation.lastInterpretation={text:actualText,acts:grounded.analysis.acts,topics:grounded.analysis.topics,nodeId:node.id};
  save.dialogue.active={campaign:run.id,node:run.engineNode,at:Date.now()};persist();
  document.getElementById('choices').innerHTML='';
  if(next.initiated){document.getElementById('contactStatus').textContent='CHANNEL CLOSED';scheduleChannelReturn(run.id,next.id);await wait(650);showScreen('home');return}
+ if(grounded.suppressNextNode){renderFreeformComposer(next,Engine.available(next,character));alignChatToMessageBoundary();return}
  await renderEngineNode();
 }
 function renderEngineEndingGate(node){

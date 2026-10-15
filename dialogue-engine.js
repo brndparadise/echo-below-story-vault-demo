@@ -315,7 +315,7 @@
   function emptyCharacter(id){return {state:clone(DEFAULTS[id]),memory:[],history:[],node:null,pending:[],referenced:{},events:{}}}
   function migrate(save){
     const next=save||{};
-    if(!next.dialogue||typeof next.dialogue!=='object')next.dialogue={version:3,characters:{}};
+    if(!next.dialogue||typeof next.dialogue!=='object')next.dialogue={version:4,characters:{}};
     if(!next.dialogue.characters||typeof next.dialogue.characters!=='object')next.dialogue.characters={};
     if(!next.dialogue.active||typeof next.dialogue.active!=='object')next.dialogue.active=null;
     Object.keys(DEFAULTS).forEach(id=>{
@@ -327,9 +327,10 @@
       prior.history=Array.isArray(prior.history)?prior.history:[];
       prior.pending=Array.isArray(prior.pending)?prior.pending:[];
       prior.referenced=prior.referenced||{}; prior.events=prior.events||{};
+      conversationState(prior);
       next.dialogue.characters[id]=prior;
     });
-    next.dialogue.version=3;
+    next.dialogue.version=4;
     return next;
   }
   function memoryHas(character,tag){return character.memory.some(entry=>entry.tags&&entry.tags.includes(tag))}
@@ -364,6 +365,92 @@
     character.memory.push(record);character.history.push({nodeId:node.id,choiceId:choice.id,statement:record.statement,at:record.at});
     return record;
   }
+  function normalizeTurn(text){return String(text||'').toLowerCase().replace(/[’]/g,"'").replace(/[^a-z0-9?' ]/g,' ').replace(/\s+/g,' ').trim()}
+  function analyzeTurn(text){
+    const normalized=normalizeTurn(text),has=pattern=>pattern.test(normalized),acts=[],topics=[];
+    if(has(/\b(sorry|apolog(?:y|ize|ise|etic))\b/))acts.push('apology');
+    if(has(/\b(i believe|believe you|trust you|i hear you)\b/))acts.push('belief');
+    if(has(/\b(not surprised|makes sense|i understand|i get it|of course|that tracks)\b/))acts.push('acknowledgement');
+    if(has(/\b(that'?s not what i meant|not what i meant|you misunderstood|i meant|let me rephrase|no,? i)\b/))acts.push('correction');
+    if(has(/\?|\b(what|why|where|when|who|how|which|do you|did you|are you|can you|could you|would you)\b/))acts.push('question');
+    if(has(/\b(should|must|need to|have to|go now|listen to me)\b/))acts.push('directive');
+    if(has(/\b(i don't believe|do not believe|lying|liar|prove it|proof|exactly what happened)\b/))acts.push('challenge');
+    if(has(/\b(maybe|might|unsure|uncertain|don't know|do not know)\b/))acts.push('uncertainty');
+    if(has(/\b(stop|leave me|never mind|don't want|do not want|refuse)\b/))acts.push('withdrawal');
+    if(has(/\b(happened|did to you|they did|temple|attack|hurt|suffered|your account|your story|remember)\b/))topics.push('testimony');
+    if(has(/\b(believe|belief|trust|doubt|prove|proof|lying|truth)\b/))topics.push('credibility');
+    if(has(/\b(choice|choose|decide|decision|right to|allowed|permission|agency|autonomy)\b/))topics.push('agency');
+    if(has(/\b(sorry|apolog|fault|blame|regret)\b/))topics.push('apology');
+    if(has(/\b(listen|hear|need from me|boundary|boundaries|support)\b/))topics.push('boundary');
+    if(has(/\b(record|write|document|evidence|names|times)\b/))topics.push('record');
+    if(has(/\b(leave|go|island|path|escape|sisters|stheno|euryale)\b/))topics.push('departure');
+    if(has(/\b(monster|gorgon|fear|afraid|weapon|kill)\b/))topics.push('monster');
+    if(has(/\b(perseus|shield|hero|man|men|spear)\b/))topics.push('perseus');
+    return {text:String(text||'').trim(),normalized,acts:[...new Set(acts)],topics:[...new Set(topics)],isQuestion:acts.includes('question')};
+  }
+  function conversationState(character){
+    if(!character.conversation||typeof character.conversation!=='object')character.conversation={pendingQuestion:null,lastInterpretation:null,responseCounts:{},recentResponses:[]};
+    character.conversation.responseCounts=character.conversation.responseCounts||{};
+    character.conversation.recentResponses=Array.isArray(character.conversation.recentResponses)?character.conversation.recentResponses:[];
+    return character.conversation;
+  }
+  function variedResponse(character,key,variants){
+    const state=conversationState(character),count=state.responseCounts[key]||0;
+    let index=count%variants.length,response=variants[index];
+    if(state.recentResponses.includes(response)&&variants.length>1){index=(index+1)%variants.length;response=variants[index]}
+    state.responseCounts[key]=count+1;state.recentResponses.push(response);state.recentResponses=state.recentResponses.slice(-8);
+    return response;
+  }
+  function recordConversationTurn(character,node,analysis,{tags=[],unresolved=false,interpretation=''}={}){
+    const record={id:'typed_'+now(),nodeId:node.id,character:node.character,intent:analysis.acts[0]||'statement',statement:analysis.text,tags,analysis:{acts:analysis.acts,topics:analysis.topics},interpretation,at:now(),storyTime:character.history.length+1,state:clone(character.state),referenced:false,unresolved};
+    character.memory.push(record);character.history.push({nodeId:node.id,choiceId:record.id,statement:record.statement,at:record.at});
+    return record;
+  }
+  function hasAct(analysis,act){return analysis.acts.includes(act)}
+  function hasTopic(analysis,topic){return analysis.topics.includes(topic)}
+  function groundedMedusaTurn(node,character,text){
+    if(!node||node.character!=='medusa')return null;
+    const analysis=analyzeTurn(text),state=conversationState(character),pending=state.pendingQuestion;
+    const stay=(key,variants,nextPending=pending,tags=[])=>({type:'stay',analysis,reply:variedResponse(character,key,variants),pendingQuestion:nextPending,tags});
+    const choose=(choiceId,key,variants,options={})=>({type:'choice',analysis,choiceId,reply:variedResponse(character,key,variants),pendingQuestion:options.pendingQuestion||null,suppressNextNode:!!options.suppressNextNode});
+
+    if(hasAct(analysis,'correction'))return stay('medusa_repair',["Then correct me. I would rather hear the untidy version twice than answer a meaning you did not choose.","All right. I read your sentence too quickly. Tell me which part I got wrong."],pending,['player_corrected_interpretation']);
+
+    if(pending==='belief_scope'){
+      if(hasAct(analysis,'apology'))return stay('medusa_apology_scope',["Sorry for what? That they did it, or that I had to make you believe me?","Do not give me an apology with no object. Are you sorry for what happened, or for the fact that belief was ever in question?"],'apology_scope',['player_apologized']);
+      if(hasTopic(analysis,'agency'))return choose('name_limit','medusa_belief_agency',["Then keep listening when my decision becomes inconvenient. Believing my account is not the same as owning what I do with it.","Good. Then believe that the next decision is mine too, even if it is not the one you would make."]);
+      if(hasTopic(analysis,'testimony')||hasTopic(analysis,'credibility'))return choose('name_limit','medusa_belief_event',["Then listen past the part that is easiest to believe. I am not finished.","All right. Hold that belief loosely enough that I can still correct its shape."]);
+      return stay('medusa_belief_clarify',["Which part are you answering: what happened to me, or my right to decide what happens next?","I asked two different things. Tell me which one you meant."],'belief_scope');
+    }
+
+    if(pending==='apology_scope'){
+      if(hasTopic(analysis,'testimony'))return choose('name_limit','medusa_apology_event',["Then keep the sorrow pointed at what was done, not at what I became to survive it.","I can accept that without making you responsible for repairing the past. What matters is whether you keep listening now."]);
+      if(hasTopic(analysis,'credibility'))return choose('name_limit','medusa_apology_doubt',["Then do not apologize for needing to understand. Apologize only if doubt made you stop listening.","I do not need instant certainty. I need you not to use uncertainty as permission to replace me."]);
+      if(hasTopic(analysis,'agency')||hasTopic(analysis,'boundary'))return choose('name_limit','medusa_apology_boundary',["Then respect the boundary the next time it costs you something. That will mean more than the apology.","All right. Let the apology become attention, not a promise you make for me."]);
+      return stay('medusa_apology_clarify',["You are still apologizing around the answer. What, specifically, are you sorry for?","I am not refusing the apology. I am asking you to name it."],'apology_scope');
+    }
+
+    if(node.id==='medusa_record_002'&&hasAct(analysis,'belief'))return choose('offer_belief','medusa_offer_belief',["Belief can be kind. It can also become a new version of me if you stop listening after you give it. Are you saying you believe what happened, or that you believe I had the right to decide what happened next?","Believing me is a beginning, not a verdict. Do you believe the account, or do you trust me with the choices that follow it?"],{pendingQuestion:'belief_scope',suppressNextNode:true});
+    if((node.id==='medusa_record_002'||node.id==='medusa_boundaries_003')&&hasAct(analysis,'apology'))return stay('medusa_unsolicited_apology',["Sorry for what? I am asking because the difference matters.","Name the part you are apologizing for. I do not want to answer the kinder meaning if it is not yours."],'apology_scope',['player_apologized']);
+    if(node.id==='medusa_boundaries_003'){
+      if(hasTopic(analysis,'boundary')||hasAct(analysis,'belief'))return choose('name_limit','medusa_boundary_heard',["Listen without turning uncertainty into a vacancy you can fill. That is what I need.","Stay with what I actually say. Do not improve it for me."]);
+      if(hasAct(analysis,'challenge')||hasTopic(analysis,'credibility'))return choose('press_for_truth','medusa_boundary_challenged',["If exact proof is the price of your attention, you are not listening. You are judging whether I have earned it.","You may question me. You may not make perfect recall the admission price for being treated as a person."]);
+    }
+    if(pending==='warning_record'){
+      if(hasTopic(analysis,'record')||hasTopic(analysis,'testimony')||/\b(warning|warned|his choice|turned around)\b/.test(analysis.normalized))return choose('document_warning','medusa_warning_answer',["Then we preserve the warning and the choice together. Nobody gets to turn consequence into surprise.","Good. The record keeps the moment he could still have turned around."]);
+      if(hasTopic(analysis,'agency')||/\b(your choice|your decision|what you chose)\b/.test(analysis.normalized))return choose('ask_what_she_wants','medusa_warning_agency',["Then record my decision too. I will not appear only where someone else acted upon me.","Yes. His choice matters, and so does mine. The record does not get to remember only the man who arrived."]);
+      return stay('medusa_warning_clarify',["Which part would you preserve? I am not asking for a moral. I am asking what the record must not lose.","Say what belongs in the record. The warning, his choice, mine, or something else."],'warning_record');
+    }
+    if(node.id==='medusa_warning_004'){
+      if(hasTopic(analysis,'record'))return choose('document_warning','medusa_record_warning',["Yes. Write down the warning and his decision beside the result. A record should preserve causes, not only bodies.","Names, time, warning, choice. Less satisfying than a legend. Harder to steal."]);
+      if(hasTopic(analysis,'departure'))return choose('urge_departure','medusa_leave_warning',["Leaving would not erase what happened. It would change who gets to decide the next thing.","My sisters have said the same. I am beginning to hear departure as a choice instead of a defeat."]);
+      if(hasTopic(analysis,'monster'))return choose('call_her_monster','medusa_monster_warning',["No. Fear already knows how to write me. I will not hold the pen for it.","That would keep me alive inside their version of the story. I want more than that."]);
+      if(hasAct(analysis,'question')||hasTopic(analysis,'agency'))return choose('ask_what_she_wants','medusa_future_warning',["I want the warning to matter before somebody becomes a body. Survival should not be the only lesson anyone learns.","Next time, I want a choice that begins before violence, not one that is recognized afterward."]);
+      if(hasAct(analysis,'acknowledgement')||hasAct(analysis,'apology'))return stay('medusa_warning_ack',["You heard the sequence. Good. What do you think should survive in the record: the warning, his choice, or only the stone?","Do not be sorry yet. Tell me what part of that story people will try to remove first."],'warning_record',['player_acknowledged_warning']);
+    }
+    return null;
+  }
+  function resolveGroundedTurn(node,character,text){return groundedMedusaTurn(node,character,text)}
   function validate(nodes){
     const errors=[],ids=Object.keys(nodes),incoming=new Set();
     ids.forEach(id=>{const node=nodes[id];if(node.id!==id)errors.push('node id mismatch: '+id);(node.choices||[]).forEach(choice=>{if(!Object.prototype.hasOwnProperty.call(choice,'reply'))errors.push('missing direct reply for '+choice.id);if(!nodes[choice.nextNode])errors.push('missing destination '+choice.nextNode+' from '+id);else incoming.add(choice.nextNode);Object.keys(choice.effects||{}).forEach(key=>{if(!STATE_KEYS.includes(key))errors.push('invalid state key '+key+' in '+choice.id)})})});
@@ -382,6 +469,6 @@
     const medusaOpening=NODES.medusa_opening_001;applyChoice(medusa,medusaOpening,medusaOpening.choices[0]);enter(medusa,NODES.medusa_record_002);
     return {valid:validation.valid,errors:validation.errors,branching:branchA!==branchB,memoryRecall:memoryHas(character,'player_investigates'),medusaMemoryRecall:memoryHas(medusa,'player_chose_her_account'),bounds:STATE_KEYS.every(k=>character.state[k]>=0&&character.state[k]<=100),saveRoundTrip:migrate(JSON.parse(JSON.stringify(save))).dialogue.characters.asterion.memory.length===1,echoLockRule:'preserved-by-host',characterInitiated:!!NODES.asterion_return_signal_008.initiated&&!!NODES.medusa_returning_008.initiated,distinctOutcomes:new Set(['a2','a3','a8','m2','m4','m5','m7']).size===7};
   }
-  root.StoryVaultDialogue={VERSION:3,STATE_KEYS,LIMITS,DEFAULTS,NODES,migrate,validate,matches,textFor,available,applyEffects,enter,applyChoice,test,emptyCharacter,memoryHas,currentMemoryHas};
+  root.StoryVaultDialogue={VERSION:4,STATE_KEYS,LIMITS,DEFAULTS,NODES,migrate,validate,matches,textFor,available,applyEffects,enter,applyChoice,analyzeTurn,conversationState,recordConversationTurn,resolveGroundedTurn,test,emptyCharacter,memoryHas,currentMemoryHas};
   if(typeof module!=='undefined')module.exports=root.StoryVaultDialogue;
 })(typeof window!=='undefined'?window:globalThis);

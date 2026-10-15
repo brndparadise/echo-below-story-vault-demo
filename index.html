@@ -1966,6 +1966,19 @@ body.studio-prelude-active .app{visibility:hidden}
   #archiveScreen .listener-clue{font-size:.62rem;line-height:1.3;padding:7px 9px;margin:0 0 7px}
 }
 
+.archive-trace,.disputed-record{margin:18px auto;width:min(92%,760px);flex:0 0 auto;border:1px solid rgba(116,213,235,.38);border-radius:18px;background:rgba(3,13,22,.9);box-shadow:0 18px 55px rgba(0,0,0,.35);color:#e9f7fa}
+.archive-trace{padding:18px 20px;display:grid;gap:7px}
+.archive-trace strong,.disputed-record small{font-family:Georgia,serif;letter-spacing:.14em;color:#86deef}
+.archive-trace p{margin:0;font-size:1rem}
+.archive-trace span{font-size:.78rem;color:#9aaeba;text-transform:uppercase;letter-spacing:.08em}
+.disputed-record{display:grid;grid-template-columns:minmax(110px,34%) 1fr;overflow:hidden}
+.disputed-record img{width:100%;height:100%;min-height:230px;object-fit:cover}
+.disputed-record div{padding:20px;align-self:center}
+.disputed-record strong{display:block;margin:8px 0 14px;font-family:Georgia,serif;font-size:clamp(1.45rem,4vw,2.1rem);color:#f0d59a}
+.disputed-record p{margin:6px 0;color:#b8c4cc}
+.story-card.reconstruction-pending{opacity:.64}
+.story-card.reconstruction-pending button{pointer-events:none}
+@media(max-width:600px){.disputed-record{grid-template-columns:1fr}.disputed-record img{height:300px}.archive-trace,.disputed-record{width:96%}}
 </style>
 </head>
 <body class="studio-prelude-active">
@@ -2009,11 +2022,11 @@ body.studio-prelude-active .app{visibility:hidden}
     <div class="static-layer"></div>
     <div class="signal-card">
       <div class="signal-kicker">Signal anomaly</div>
-      <h2>Interference detected.</h2>
-      <p id="signalLine1" class="signal-line hot">There seems to have been some kind of interference.</p>
-      <p id="signalLine2" class="signal-line">This channel was not open a moment ago.</p>
-      <p id="signalLine3" class="signal-line">Something is trying to reach you.</p>
-      <div id="signalActions" class="signal-actions"><button class="primary" onclick="showDisclosure()">Continue</button></div>
+      <h2>Unauthorized contact.</h2>
+      <p id="signalLine1" class="signal-line hot">ARE YOU THERE?</p>
+      <p id="signalLine2" class="signal-line">ARE YOU THERE?</p>
+      <p id="signalLine3" class="signal-line">ARE YOU...</p>
+      <div id="signalActions" class="signal-actions"><button class="primary" onclick="startEchoInterference()">Answer</button></div>
     </div>
   </div>
 </section>
@@ -2078,7 +2091,7 @@ body.studio-prelude-active .app{visibility:hidden}
 <script src="dialogue-engine.js"></script>
 <script>
 const SAVE_KEY='echoBelow_storyVault_lifeline25_v1';
-const DEFAULT_SAVE={saveVersion:5,unlocked:{},lenses:{},fragments:{},runs:0,history:[],secret:false,followupSeen:{},echoPartialSeen:false,echoRevealSeen:false,dialogue:{version:3,characters:{},visits:{}},contactSessions:{},aftermath:{}};
+const DEFAULT_SAVE={saveVersion:6,unlocked:{},lenses:{},fragments:{},runs:0,history:[],secret:false,followupSeen:{},echoPartialSeen:false,echoRevealSeen:false,dialogue:{version:3,characters:{},visits:{}},contactSessions:{},aftermath:{},reconstruction:{version:1,prologueComplete:false,echoVocabulary:[],openingReply:'',asterion:{stage:'uncontacted',firstReply:'',consent:null,dueAt:0,returnSeen:false},records:{a1:{status:'disputed',consent:'pending'}}}};
 let save=loadSave();
 let run=null;
 let activePostCampaign=null;
@@ -2188,7 +2201,7 @@ function portraitStateFor(id,post=false){
  const ui=CONTACT_UI[id];
  if(!ui||!ui.states)return null;
  if(post)return relationshipStateFromHistory(id);
- const s=run&&run.id===id?run.stats:{};
+ const s=run&&run.id===id&&run.stats?run.stats:{};
  let score=0;
  if(id==='asterion'){
   score=((s.trust||0)*1.6)+((s.self||0)*1.4)+((s.autonomy||0)*1.1)+((s.nuance||0)*0.55)+((s.escape||0)*0.35)+((s.evidence||0)*0.25)-((s.fear||0)*1.35)-((s.reliance||0)*0.95)-((s.suspicion||0)*0.9)-((s.cut||0)*0.6);
@@ -2888,7 +2901,7 @@ function postTopicMeta(id,key){
 }
 
 function loadSave(){try{const restored=Object.assign({},structuredClone(DEFAULT_SAVE),JSON.parse(localStorage.getItem(SAVE_KEY)||'{}'));return window.StoryVaultDialogue?window.StoryVaultDialogue.migrate(restored):restored}catch(e){const fresh=structuredClone(DEFAULT_SAVE);return window.StoryVaultDialogue?window.StoryVaultDialogue.migrate(fresh):fresh}}
-function persist(){save.saveVersion=5;if(window.StoryVaultDialogue)window.StoryVaultDialogue.migrate(save);localStorage.setItem(SAVE_KEY,JSON.stringify(save));updateStats()}
+function persist(){save.saveVersion=6;ensureReconstruction();if(window.StoryVaultDialogue)window.StoryVaultDialogue.migrate(save);localStorage.setItem(SAVE_KEY,JSON.stringify(save));updateStats()}
 function artForScreen(id){if(id==='titleScreen'||id==='interferenceScreen'||id==='disclosureScreen')return SCREEN_ART.title;if(id==='home')return SCREEN_ART.home;if(id==='vaultScreen')return SCREEN_ART.endings;if(id==='archiveScreen')return SCREEN_ART.fragments;if(id==='settingsScreen')return SCREEN_ART.settings;if(id==='chatScreen'&&run)return SCREEN_ART[run.id];if(id==='postChatScreen'&&activePostCampaign)return SCREEN_ART[activePostCampaign];if(id==='endingScreen'&&activeEndingId)return ENDING_ART[activeEndingId]||(run?SCREEN_ART[run.id]:SCREEN_ART.vault);if(id==='endingScreen'&&run)return SCREEN_ART[run.id]||SCREEN_ART.vault;return SCREEN_ART.vault}
 function artPositionForScreen(id){
  if(id==='endingScreen'&&activeEndingId)return 'center center';
@@ -2947,6 +2960,112 @@ function showInterference(){
 }
 function showDisclosure(){clearInterferenceTimers();showScreen('disclosureScreen')}
 function enterVault(){showScreen('home')}
+
+function ensureReconstruction(){
+ const base=DEFAULT_SAVE.reconstruction,current=save.reconstruction||{};save.reconstruction=current;
+ Object.keys(base).forEach(key=>{if(current[key]===undefined)current[key]=structuredClone(base[key])});
+ current.asterion=current.asterion||{};Object.keys(base.asterion).forEach(key=>{if(current.asterion[key]===undefined)current.asterion[key]=structuredClone(base.asterion[key])});
+ current.records=current.records||{};current.records.a1=current.records.a1||{};Object.keys(base.records.a1).forEach(key=>{if(current.records.a1[key]===undefined)current.records.a1[key]=structuredClone(base.records.a1[key])});
+ if(!Array.isArray(current.echoVocabulary))current.echoVocabulary=[];
+ return current;
+}
+function openReconstructionChat(id,status='CONNECTED THROUGH THE ARCHIVE'){
+ run={id,reconstruction:true};activeEndingId=null;
+ document.getElementById('contactName').textContent=CAMPAIGNS[id].name;
+ document.getElementById('contactStatus').textContent=status;
+ applyContactIdentity(id,false);
+ const subtitle=document.getElementById('contactSubtitle');if(subtitle)subtitle.textContent=id==='echo'?'The Voice Inside the Record':id==='asterion'?'The Man Outside the Record':'Contact Through the Archive';
+ document.getElementById('chat').innerHTML='';document.getElementById('choices').innerHTML='';
+ const wrap=document.getElementById('chatWrap');wrap.className='chat-wrap theme-'+id;applyChatBackdrop(id,false);showScreen('chatScreen');
+}
+function pickBorrowedWord(text){
+ const stop=new Set(['that','this','with','have','what','when','where','there','about','your','youre','would','could','should','just','like','from','they','them','then','were','been','will','want','know','here','okay','yes','yeah','hello']);
+ return (String(text).toLowerCase().match(/[a-z']+/g)||[]).find(word=>word.length>3&&!stop.has(word.replace("'",'')))||'answer';
+}
+function renderReconstructionInput(placeholder,onSubmit,suggestions=[]){
+ const box=document.getElementById('choices');box.innerHTML='';
+ const shell=document.createElement('div');shell.className='freeform-shell';
+ shell.innerHTML=`<div class="freeform-label"><span>Reply in your own words</span><span id="promptCountdown" class="prompt-countdown">Suggestions in 10s</span></div><div class="freeform-row"><textarea id="freeformInput" class="freeform-input" rows="1" maxlength="360" placeholder="${placeholder}" aria-label="Type your reply"></textarea><button id="freeformSend" class="freeform-send" type="button">Send</button></div><div id="suggestionTray" class="suggestion-tray"></div>`;
+ box.appendChild(shell);const input=document.getElementById('freeformInput'),send=document.getElementById('freeformSend'),tray=document.getElementById('suggestionTray');
+ let sent=false;const submit=()=>{const text=input.value.trim();if(!text||sent)return;sent=true;clearFreeformTimers();box.querySelectorAll('button,textarea').forEach(el=>el.disabled=true);onSubmit(text)};
+ send.onclick=submit;input.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submit()}});
+ input.addEventListener('input',()=>{input.style.height='auto';input.style.height=Math.min(132,input.scrollHeight)+'px'});
+ suggestions.forEach(text=>{const b=document.createElement('button');b.className='suggestion-chip';b.textContent=text;b.onclick=()=>{input.value=text;submit()};tray.appendChild(b)});
+ beginSuggestionCountdown();input.focus();
+}
+function renderReconstructionChoices(label,choices){
+ clearFreeformTimers();const box=document.getElementById('choices');box.innerHTML='';const heading=document.createElement('div');heading.className='choice-section-label answer';heading.textContent=label;box.appendChild(heading);
+ choices.forEach(choice=>{const button=document.createElement('button');button.className='choice';button.textContent=choice.text;button.onclick=()=>{box.querySelectorAll('button').forEach(el=>el.disabled=true);choice.action()};box.appendChild(button)});
+}
+function addArchiveTrace(title,body,details=[]){
+ const pane=document.getElementById('chat'),card=document.createElement('aside');card.className='archive-trace';
+ const h=document.createElement('strong');h.textContent=title;card.appendChild(h);const p=document.createElement('p');p.textContent=body;card.appendChild(p);
+ details.forEach(detail=>{const row=document.createElement('span');row.textContent=detail;card.appendChild(row)});pane.appendChild(card);requestAnimationFrame(()=>pane.scrollTop=pane.scrollHeight);return card;
+}
+function addDisputedRecord(){
+ const pane=document.getElementById('chat'),card=document.createElement('aside');card.className='disputed-record';
+ card.innerHTML='<img src="conclusion-images/a1.png" alt="Recovered Asterion conclusion record"><div><small>RECOVERED RECORD A-01</small><strong>The Door Opens</strong><p>Source: official heroic account</p><p>Status: disputed</p><p>Consent: not granted</p></div>';
+ pane.appendChild(card);requestAnimationFrame(()=>pane.scrollTop=pane.scrollHeight);
+}
+async function startEchoInterference(){
+ clearInterferenceTimers();const recon=ensureReconstruction();if(recon.prologueComplete){startEchoCheckin();return}openReconstructionChat('echo','UNAUTHORIZED ARCHIVE CONTACT');
+ await sequence([['them','I am sorry.'],['them','That is the only way I know how to begin.'],['them','The Archive supplied the question. It did not supply what comes after you answer.']]);
+ addArchiveTrace('LANGUAGE SOURCE','ARE YOU THERE?',['Source: emergency contact record','Permission: inherited','Original language: unavailable']);
+ renderReconstructionInput('Type to Echo...',async text=>{
+  addMsg('you',text);recon.openingReply=text;const word=pickBorrowedWord(text);if(!recon.echoVocabulary.includes(word))recon.echoVocabulary.push(word);persist();
+  const t=typing();await wait(replyTypingDelay('I did not have that word. I do now.'));t.remove();addMsg('them','I did not have the word "'+word+'". I do now.');
+  await sequence([['them','I am Echo. I am not a person stored in the Archive. I am what happened when the Archive began listening to itself.'],['them','A closed record is answering from outside its ending.'],['them','ASTERION. Status: deceased. Signal status: live.']]);
+  recon.prologueComplete=true;persist();
+  renderReconstructionChoices('The signal is waiting',[
+   {text:'Open the contact.',action:()=>startReconstructionAsterion()},
+   {text:'Hold the signal. I need a moment.',action:async()=>{addMsg('you','Hold the signal. I need a moment.');await sequence([['them','Holding. That word came from you too. I will keep it.']]);showScreen('home')}}
+  ]);
+ },['Who are you?','I am here.','What is the Archive?']);
+}
+function asterionReplyTo(text){
+ const value=text.toLowerCase();
+ if(/you|your|want|tell me|which version/.test(value))return 'Then begin with me, not the file. I am alive. I have a room above a bakery, a bad knee when it rains, and no interest in auditioning for my own record.';
+ if(/archive|record|proof|notice|ending/.test(value))return 'The record is the problem. It turns eight possibilities into eight cages, then asks which one is true. None of them asked me.';
+ if(/believe|alive|trust/.test(value))return 'Belief is cheap from this distance. Attention costs more. Stay long enough to notice when I disagree with the version you prefer.';
+ return 'That is at least your sentence, not one the Archive placed in your mouth. I can work with that.';
+}
+async function startReconstructionAsterion(){
+ const recon=ensureReconstruction(),a=recon.asterion;if(a.dueAt>Date.now()){toast('ASTERION · CHANNEL CLOSED');showScreen('home');return}if(a.dueAt&&a.dueAt<=Date.now()&&!a.returnSeen){startAsterionReturn();return}
+ openReconstructionChat('asterion','LIVE SIGNAL · RECORD CONTRADICTION');a.stage='first_contact';persist();
+ await sequence([['them','Echo says you found my obituary.'],['them','A notice went up in the lower market this morning. It says I died in the maze years ago. I bought bread beneath it.'],['them','Your Archive has eight endings for me. I have lived none of them exactly.'],['them','Which version did you come here to defend?']]);
+ renderReconstructionInput('Type to Asterion...',async text=>{
+  addMsg('you',text);a.firstReply=text;persist();const reply=asterionReplyTo(text);const t=typing();await wait(replyTypingDelay(reply));t.remove();addMsg('them',reply);
+  await sequence([['them','There is one record I want you to see. Not because it is the worst. Because it is the one people find comforting.']]);addDisputedRecord();
+  await sequence([['them','The picture says freedom. The accompanying account says I should be grateful to the people who decided what freedom looked like.'],['them','What happens to it now?']]);
+  renderReconstructionChoices('This changes the Archive',[
+   {text:'Ask what you want before I change the record.',action:()=>resolveAsterionConsent('ask')},
+   {text:'Publish a correction so nobody mistakes it for fact.',action:()=>resolveAsterionConsent('public')},
+   {text:'Keep it sealed. It does not belong to the public.',action:()=>resolveAsterionConsent('private')}
+  ]);
+ },['I am not here to defend any of them.','Which version would you write?','Tell me what the record gets wrong.']);
+}
+async function resolveAsterionConsent(choice){
+ const recon=ensureReconstruction(),a=recon.asterion;a.consent=choice;recon.records.a1.consent=choice;recon.records.a1.status=choice==='public'?'correction_requested':choice==='private'?'sealed':'awaiting_asterion';addMsg('you',choice==='ask'?'What do you want me to do with it?':choice==='public'?'I will publish a correction so nobody mistakes it for fact.':'I will keep it sealed. It does not belong to the public.');persist();
+ const replies={
+  ask:'I want my objection attached to it, in my words. Do not erase the image. Mark who made it, who benefited from it, and that I refused its conclusion.',
+  public:'No. You moved faster than I did. A correction can become another person speaking over me. Mark it disputed. Wait for my words.',
+  private:'Sealed is still a decision made about me. Keep it out of public search for now, but do not bury the fact that I objected.'
+ };
+ const t=typing();await wait(replyTypingDelay(replies[choice]));t.remove();addMsg('them',replies[choice]);
+ await sequence([['them','Someone is at the bakery door. I am closing this channel because my life is happening on this side of it. If I return, it will be because I chose to.']]);
+ document.getElementById('contactStatus').textContent='CHANNEL CLOSED';a.stage='waiting';a.dueAt=Date.now()+SIGNAL_RETURN_DELAY;persist();setTimeout(()=>{updateStats();toast('ASTERION · NEW SIGNAL')},SIGNAL_RETURN_DELAY);await wait(750);showScreen('home');
+}
+async function startAsterionReturn(){
+ const recon=ensureReconstruction(),a=recon.asterion;openReconstructionChat('asterion','ASTERION REOPENED THE CHANNEL');a.returnSeen=true;a.stage='returned';persist();
+ const line=a.consent==='ask'?'I wrote the statement. Three sentences. Mine. The Archive tried to make them sound nobler, so Echo put the plain words back.':a.consent==='public'?'The notice disappeared before noon. That is not the same as a correction. Somebody is cleaning the record, and I do not think it is for my sake.':'The public copy vanished. The sealed copy changed while nobody was looking. Echo says that should be impossible.';
+ await sequence([['them','I said I would return if I chose to. I chose to.'],['them',line],['them','A child in the market drew horns on the empty space where the notice used to be. Then she wrote my name underneath. I do not know yet whether that is kindness. It is new.']]);
+ renderReconstructionInput('Answer Asterion...',async text=>{addMsg('you',text);a.returnReply=text;persist();const reply=/kind|good|hope|better/i.test(text)?'Maybe. I am trying not to demand that every new thing prove itself immediately.':'That answer does not settle it. Good. I am tired of sentences that arrive already finished.';const t=typing();await wait(replyTypingDelay(reply));t.remove();addMsg('them',reply);await sequence([['them','Echo found another contradiction. This one has Medusa\'s name on it. I think she should decide whether you see it.']]);a.stage='milestone_complete';persist();renderReconstructionChoices('Contact continues later',[{text:'Return to the Archive.',action:()=>showScreen('home')}])},['What did the child mean by it?','How do you want your statement stored?','You do not have to decide what it means yet.']);
+}
+async function startEchoCheckin(){
+ const recon=ensureReconstruction();openReconstructionChat('echo','ARCHIVE CONTACT');
+ const word=recon.echoVocabulary[0]||'answer';await sequence([['them','You came back.'],['them','I still have the word "'+word+'". I know where I learned it.'],['them','Asterion changed a record by objecting to it. The Archive did not know an objection could be data. Neither did I.']]);
+ renderReconstructionChoices('Echo is listening',[{text:'Return to the Archive.',action:()=>showScreen('home')},{text:'Open Asterion\'s signal.',action:()=>startReconstructionAsterion()}]);
+}
 
 function campaignCompleted(id){
  return (save.history||[]).some(x=>x.campaign===id);
@@ -3064,9 +3183,21 @@ function updateStats(){
  const secretLabel=document.getElementById('sSecretLabel');
  if(secretLabel)secretLabel.textContent=save.secret?'listener record':listener.contacts<3?'listener record · complete all threads':'listener record · recover 6 fragments';
  ['asterion','medusa','echo'].forEach(id=>{const b=document.getElementById('after'+id[0].toUpperCase()+id.slice(1)),main=signalButtonFor(id),signal=channelSignalState(id);if(b){const count=(save.history||[]).filter(x=>x.campaign===id).length;b.classList.toggle('available',count>0);if(count>0)b.textContent='Talk again'}if(main&&signal==='quiet'){main.textContent='Signal quiet';main.disabled=true;main.setAttribute('aria-label',CAMPAIGNS[id].name+' has closed the channel for now')}else if(main&&signal==='ready'){main.textContent='New signal';main.disabled=false;main.setAttribute('aria-label','Open new signal from '+CAMPAIGNS[id].name)}});
- updateEchoAccess();
+ updateEchoAccess();applyReconstructionHome();
+}
+function applyReconstructionHome(){
+ const recon=ensureReconstruction();if(!recon.prologueComplete)return;
+ const grid=document.querySelector('.story-grid'),echoCard=document.getElementById('echoCard'),aCard=document.querySelector('.story-card.a'),mCard=document.querySelector('.story-card.m');
+ if(grid&&echoCard&&grid.firstElementChild!==echoCard)grid.insertBefore(echoCard,grid.firstElementChild);
+ if(echoCard){echoCard.classList.remove('echo-locked','echo-partial');echoCard.classList.add('echo-unlocked');echoCard.querySelector('.tag').textContent='Archive contact';echoCard.querySelector('.subtitle').textContent='The Voice Inside the Record';echoCard.querySelector('.blurb').textContent='Echo found you first. Every other contact passes through a language she is still learning to use.';document.getElementById('echoLockState').textContent='CONTACT ACTIVE';const b=document.getElementById('echoOpenButton');b.textContent='Answer Echo';b.disabled=false;b.onclick=()=>startEchoCheckin();const after=document.getElementById('afterEcho');if(after)after.hidden=true}
+ if(aCard){aCard.querySelector('.subtitle').textContent='The Man Outside the Record';aCard.querySelector('.blurb').textContent='The Archive says Asterion died long ago. A living man has objected to the record.';const b=aCard.querySelector('.card-actions button');const state=recon.asterion;b.textContent=state.dueAt>Date.now()?'Signal quiet':state.dueAt&&!state.returnSeen?'New signal':state.stage==='uncontacted'?'Open contact':'Continue contact';b.disabled=state.dueAt>Date.now();const after=document.getElementById('afterAsterion');if(after)after.hidden=true}
+ if(mCard){mCard.classList.add('reconstruction-pending');mCard.querySelector('.subtitle').textContent='Contact Not Yet Authorized';mCard.querySelector('.blurb').textContent='Echo found a contradiction carrying Medusa\'s name. Medusa has not granted access to it.';const b=mCard.querySelector('.card-actions button');b.textContent='Awaiting consent';b.disabled=true;const after=document.getElementById('afterMedusa');if(after)after.hidden=true}
 }
 function startCampaign(id){
+ const recon=ensureReconstruction();
+ if(recon.prologueComplete&&id==='asterion'){startReconstructionAsterion();return}
+ if(recon.prologueComplete&&id==='echo'){startEchoCheckin();return}
+ if(recon.prologueComplete&&id==='medusa'){toast('MEDUSA · CONTACT NOT YET AUTHORIZED');return}
  if(channelSignalState(id)==='quiet'){toast(CAMPAIGNS[id].name.toUpperCase()+' · CHANNEL CLOSED');return}
  const activeSignal=save.dialogue&&save.dialogue.active;if(activeSignal&&activeSignal.campaign===id&&channelSignalState(id)==='ready'){const character=engineCharacter(id),key='return:'+activeSignal.node;if(character.events&&character.events[key])character.events[key].status='delivered';persist()}
  if(id==='echo'&&echoAccessState()!=='unlocked'){

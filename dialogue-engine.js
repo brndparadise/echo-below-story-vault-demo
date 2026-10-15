@@ -315,7 +315,7 @@
   function emptyCharacter(id){return {state:clone(DEFAULTS[id]),memory:[],history:[],node:null,pending:[],referenced:{},events:{}}}
   function migrate(save){
     const next=save||{};
-    if(!next.dialogue||typeof next.dialogue!=='object')next.dialogue={version:2,characters:{}};
+    if(!next.dialogue||typeof next.dialogue!=='object')next.dialogue={version:3,characters:{}};
     if(!next.dialogue.characters||typeof next.dialogue.characters!=='object')next.dialogue.characters={};
     if(!next.dialogue.active||typeof next.dialogue.active!=='object')next.dialogue.active=null;
     Object.keys(DEFAULTS).forEach(id=>{
@@ -329,13 +329,17 @@
       prior.referenced=prior.referenced||{}; prior.events=prior.events||{};
       next.dialogue.characters[id]=prior;
     });
-    next.dialogue.version=2;
+    next.dialogue.version=3;
     return next;
   }
   function memoryHas(character,tag){return character.memory.some(entry=>entry.tags&&entry.tags.includes(tag))}
+  function currentMemoryHas(character,tag){
+    if(!Number.isFinite(character.sessionStartedAt))return memoryHas(character,tag);
+    return character.memory.some(entry=>entry.at>=character.sessionStartedAt&&entry.tags&&entry.tags.includes(tag));
+  }
   function matches(character,conditions){
     return (conditions||[]).every(condition=>{
-      if(condition.type==='memory')return memoryHas(character,condition.tag);
+      if(condition.type==='memory')return condition.scope==='persistent'||String(condition.tag).startsWith('cross_')?memoryHas(character,condition.tag):currentMemoryHas(character,condition.tag);
       if(condition.type==='state'){
         const value=character.state[condition.key]||0;
         if(condition.gte!==undefined&&value<condition.gte)return false;
@@ -354,10 +358,10 @@
     character.node=node.id;
     if(node.event&&!character.events[node.event.id]){character.events[node.event.id]={id:node.event.id,dueAt:now()+node.event.delay,status:'pending'};character.pending.push(character.events[node.event.id])}
   }
-  function applyChoice(character,node,choice){
+  function applyChoice(character,node,choice,actualText){
     applyEffects(character.state,choice.effects);
-    const record={id:choice.id,nodeId:node.id,character:node.character,intent:choice.intent,tags:choice.memoryTags||[],at:now(),storyTime:character.history.length+1,state:clone(character.state),referenced:false,unresolved:!!choice.unresolved};
-    character.memory.push(record);character.history.push({nodeId:node.id,choiceId:choice.id,at:record.at});
+    const record={id:choice.id,nodeId:node.id,character:node.character,intent:choice.intent,statement:String(actualText||choice.text||''),tags:choice.memoryTags||[],at:now(),storyTime:character.history.length+1,state:clone(character.state),referenced:false,unresolved:!!choice.unresolved};
+    character.memory.push(record);character.history.push({nodeId:node.id,choiceId:choice.id,statement:record.statement,at:record.at});
     return record;
   }
   function validate(nodes){
@@ -378,6 +382,6 @@
     const medusaOpening=NODES.medusa_opening_001;applyChoice(medusa,medusaOpening,medusaOpening.choices[0]);enter(medusa,NODES.medusa_record_002);
     return {valid:validation.valid,errors:validation.errors,branching:branchA!==branchB,memoryRecall:memoryHas(character,'player_investigates'),medusaMemoryRecall:memoryHas(medusa,'player_chose_her_account'),bounds:STATE_KEYS.every(k=>character.state[k]>=0&&character.state[k]<=100),saveRoundTrip:migrate(JSON.parse(JSON.stringify(save))).dialogue.characters.asterion.memory.length===1,echoLockRule:'preserved-by-host',characterInitiated:!!NODES.asterion_return_signal_008.initiated&&!!NODES.medusa_returning_008.initiated,distinctOutcomes:new Set(['a2','a3','a8','m2','m4','m5','m7']).size===7};
   }
-  root.StoryVaultDialogue={VERSION:2,STATE_KEYS,LIMITS,DEFAULTS,NODES,migrate,validate,matches,textFor,available,applyEffects,enter,applyChoice,test,emptyCharacter,memoryHas};
+  root.StoryVaultDialogue={VERSION:3,STATE_KEYS,LIMITS,DEFAULTS,NODES,migrate,validate,matches,textFor,available,applyEffects,enter,applyChoice,test,emptyCharacter,memoryHas,currentMemoryHas};
   if(typeof module!=='undefined')module.exports=root.StoryVaultDialogue;
 })(typeof window!=='undefined'?window:globalThis);

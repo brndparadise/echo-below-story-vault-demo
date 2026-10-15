@@ -1939,6 +1939,25 @@ body.studio-prelude-active .app{visibility:hidden}
 @keyframes preludeSkip{from{opacity:0}to{opacity:1}}
 @keyframes preludeLeave{to{opacity:0}}
 @keyframes preludeDrift{to{transform:translate3d(4%,3%,0)}}
+.freeform-shell{display:grid;gap:10px;width:100%}
+.freeform-label{display:flex;justify-content:space-between;gap:12px;align-items:center;color:#d9bd79;font:600 .72rem/1.2 Georgia,serif;letter-spacing:.18em;text-transform:uppercase}
+.prompt-countdown{font:500 .66rem/1.2 system-ui,sans-serif;letter-spacing:.05em;text-transform:none;color:#7790a2;transition:.2s}
+.prompt-countdown.ready{color:#9bd4e7}
+.freeform-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;align-items:end}
+.freeform-input{width:100%;min-height:54px;max-height:132px;resize:none;border:1px solid rgba(226,191,130,.34);border-radius:16px;background:rgba(3,10,17,.84);color:#f3ede1;padding:14px 15px;font:500 1rem/1.4 system-ui,sans-serif;outline:none}
+.freeform-input:focus{border-color:rgba(126,215,239,.72);box-shadow:0 0 0 3px rgba(86,188,220,.1)}
+.freeform-input::placeholder{color:#6f7d88}
+.freeform-send{min-height:54px;border:1px solid rgba(99,206,237,.5);border-radius:16px;background:linear-gradient(145deg,rgba(24,88,111,.88),rgba(9,43,61,.94));color:#effbff;padding:0 18px;font-weight:700;cursor:pointer}
+.freeform-send:disabled,.freeform-input:disabled{opacity:.48;cursor:default}
+.suggestion-tray{display:none;gap:7px;grid-template-columns:1fr}
+.suggestion-tray.visible{display:grid;animation:suggestionReveal .28s ease both}
+.suggestion-chip{border:1px solid rgba(226,191,130,.25);border-radius:13px;background:rgba(255,255,255,.025);color:#d9e3e8;padding:10px 12px;text-align:left;font:500 .82rem/1.35 system-ui,sans-serif;cursor:pointer}
+.suggestion-chip:hover,.suggestion-chip:focus-visible{border-color:rgba(126,215,239,.58);background:rgba(77,169,198,.09)}
+.interpretation-note{color:#8299a8;font-size:.7rem;line-height:1.35}
+@keyframes suggestionReveal{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@media(max-width:520px){
+ .freeform-row{grid-template-columns:minmax(0,1fr) 64px}.freeform-send{padding:0 10px}.freeform-input{font-size:.94rem}
+}
 @media(prefers-reduced-motion:reduce){
   .studio-prelude::before,.studio-prelude-credit,.studio-prelude-title,.studio-prelude-skip{animation:none}
   .studio-prelude-credit{display:none}.studio-prelude-title{opacity:1}.studio-prelude.leaving{animation:none;opacity:0}
@@ -2059,7 +2078,7 @@ body.studio-prelude-active .app{visibility:hidden}
 <script src="dialogue-engine.js"></script>
 <script>
 const SAVE_KEY='echoBelow_storyVault_lifeline25_v1';
-const DEFAULT_SAVE={saveVersion:4,unlocked:{},lenses:{},fragments:{},runs:0,history:[],secret:false,followupSeen:{},echoPartialSeen:false,echoRevealSeen:false,dialogue:{version:2,characters:{}},contactSessions:{},aftermath:{}};
+const DEFAULT_SAVE={saveVersion:5,unlocked:{},lenses:{},fragments:{},runs:0,history:[],secret:false,followupSeen:{},echoPartialSeen:false,echoRevealSeen:false,dialogue:{version:3,characters:{},visits:{}},contactSessions:{},aftermath:{}};
 let save=loadSave();
 let run=null;
 let activePostCampaign=null;
@@ -2869,7 +2888,7 @@ function postTopicMeta(id,key){
 }
 
 function loadSave(){try{const restored=Object.assign({},structuredClone(DEFAULT_SAVE),JSON.parse(localStorage.getItem(SAVE_KEY)||'{}'));return window.StoryVaultDialogue?window.StoryVaultDialogue.migrate(restored):restored}catch(e){const fresh=structuredClone(DEFAULT_SAVE);return window.StoryVaultDialogue?window.StoryVaultDialogue.migrate(fresh):fresh}}
-function persist(){save.saveVersion=4;if(window.StoryVaultDialogue)window.StoryVaultDialogue.migrate(save);localStorage.setItem(SAVE_KEY,JSON.stringify(save));updateStats()}
+function persist(){save.saveVersion=5;if(window.StoryVaultDialogue)window.StoryVaultDialogue.migrate(save);localStorage.setItem(SAVE_KEY,JSON.stringify(save));updateStats()}
 function artForScreen(id){if(id==='titleScreen'||id==='interferenceScreen'||id==='disclosureScreen')return SCREEN_ART.title;if(id==='home')return SCREEN_ART.home;if(id==='vaultScreen')return SCREEN_ART.endings;if(id==='archiveScreen')return SCREEN_ART.fragments;if(id==='settingsScreen')return SCREEN_ART.settings;if(id==='chatScreen'&&run)return SCREEN_ART[run.id];if(id==='postChatScreen'&&activePostCampaign)return SCREEN_ART[activePostCampaign];if(id==='endingScreen'&&activeEndingId)return ENDING_ART[activeEndingId]||(run?SCREEN_ART[run.id]:SCREEN_ART.vault);if(id==='endingScreen'&&run)return SCREEN_ART[run.id]||SCREEN_ART.vault;return SCREEN_ART.vault}
 function artPositionForScreen(id){
  if(id==='endingScreen'&&activeEndingId)return 'center center';
@@ -3077,18 +3096,138 @@ function syncEchoCrossCampaignMemory(){
  if(tags.has('player_made_room_for_uncertainty')&&tags.has('player_demanded_proof'))add('cross_certainty_contradiction','uncertainty and proof');
  if((tags.has('player_honored_silence')||tags.has('player_left_meaning_open'))&&tags.has('player_demanded_proof'))add('cross_silence_contradiction','silence and pressure');
 }
+const FREEFORM_HINT_DELAY=10000;
+let freeformHintTimer=null,freeformCountdownTimer=null;
+const VISIT_SIGNALS={
+ asterion:[
+  'Someone moved the food closer to my door. Not much closer. Enough that I noticed the decision.',
+  'The torch in the north passage went out, then came back. Nobody walked past it.',
+  'Ariadne left the thread loose today. I think she wanted me to know I could refuse it.',
+  'I found a mark on the wall at my shoulder height. For once, it was not made by a weapon.',
+  'Theseus called into the maze. He used the title, not my name. I did not answer.',
+  'I slept without dreaming of the center. That has never happened before.'
+ ],
+ medusa:[
+  'A ship passed the island without changing course. My sisters celebrated the absence of a hero.',
+  'Someone left flowers at the old path. I cannot decide whether they are apology, warning, or bait.',
+  'Stheno found a cracked mirror and asked whether I wanted it buried. I said not yet.',
+  'The sea carried part of a song from the mainland. I remembered the ending differently.',
+  'There are footprints below the cliff. They approach, stop, and return to the water.',
+  'Euryale asked what name I would use somewhere nobody knew the story. I did not have an answer.'
+ ],
+ echo:[
+  'The Archive changed a timestamp while I was looking at it. It expected me not to notice.',
+  'I heard Asterion say a word Medusa remembered. Neither record admits they touched.',
+  'A blank file appeared with my name spelled correctly. It contains four seconds of breathing.',
+  'The system offered to finish a sentence I had not begun. I declined. It seemed offended.',
+  'One of your earlier answers exists in two records now. The punctuation is different.',
+  'I found a silence the Archive cannot compress. I have been listening to it.'
+ ]
+};
+const RESUME_SIGNALS={
+ asterion:['You came back. The corridor has not become kinder while you were gone.','I kept the channel open. I was not certain I would.','The footsteps moved once while you were away. I did not follow them.','I have not changed my answer. I may have changed the question.'],
+ medusa:['You returned. Do not expect the story to have waited politely.','The path is still visible. So are the footprints on it.','My sisters asked whether I trusted the channel. I told them that was not a yes-or-no question.','Nothing attacked while you were gone. That does not make the quiet innocent.'],
+ echo:['Connection restored. The Archive insists there was no interruption. It is lying.','You were absent for longer in one record than in the others.','The channel remembered your last sentence. I checked.','We are connected again. Something tried to answer in the gap.']
+};
+const CHOICE_CUES={
+ ask_footsteps:'footsteps sound direction where corridor passage who',reassure_without_command:'wait ready pace no rush safe face',dismiss_fear:'imagine imagining nothing overreact probably',opening_silence:'silent silence quiet listen wait',
+ ask_about_thread:'thread mean means purpose offer gift',tell_him_hide:'hide distrust trust nobody danger',say_his_name:'asterion want choose decide maze better',ask_his_preference:'want prefer decision yours feel',urge_action:'go now hurry opening wait',boundary_silence:'silence quiet space wait',
+ apologize_without_excuse:'sorry apologize careless wrong deserved',let_him_leave:'leave go quiet no answer space',name_the_space:'silence means decide yours',break_silence:'here heard tell listen',
+ investigate_offer:'ariadne wants why thread ask offer',accept_offer:'take thread choice yours',reject_offer:'do not take refuse price trust',offer_silence_again:'speak ariadne first silence listen',
+ admit_limits:'afraid choice yours not mine sorry',double_down:'listen alive must obey',withdraw_advice:'stop advising listen right',ask_his_plan:'want next plan choose',urge_escape:'run escape thread now',
+ choose_account:'your account start your story',ask_for_uncertainty:'remember unsure uncertainty certain',ask_about_legend:'legend leaves out omitted',ask_why_talk:'why trust channel tell me',
+ give_consent_to_continue:'if want continue choice stop',separate_memory_from_myth:'memory myth versions added separate',offer_belief:'believe you trust account',ask_boundary:'need from me boundary while tell',name_limit:'listen not there limit',press_for_truth:'exactly proof truth need know',
+ document_warning:'record warned warning chose coming',ask_what_she_wants:'want happen next path',urge_departure:'leave island surrender go',call_her_monster:'monster gorgon fear afraid weapon',own_harm:'sorry wrong safety danger turned',ask_her_terms:'terms protection want boundary',defend_advice:'alive listen should must',
+ leave_with_sisters:'sisters leave road together',send_record_then_leave:'record send leave testimony',ask_her_decision:'face him disappear need hate',
+ ask_echo_receipts:'found show proof soften',ask_echo_certainty:'connect why evidence found',ask_echo_silence:'silence differently where',validate_silence:'gap choice yes silence',test_pointless:'pointless test random',compare_suggestions:'suggests want compare',refuse_define_voice:'not define voice yours',
+ admit_fear_pattern:'afraid control sorry admit',defend_context_pattern:'different context needed defend',ask_for_time_pattern:'time think wait answer',preserve_difference:'save difference preserve rewrite',ask_echo_meaning:'want gap mean choose',urge_speak_more:'keep talking speak more',
+ acknowledge_boundary:'right question stay sorry',ask_system_pressure:'system pushing helping tell how',insist_on_action:'act now before changes',check_metadata:'timestamps metadata edits compare',protect_thread:'copy protect backup archive notices',question_hidden_truth:'hidden not true secret proof',
+ map_missing_room:'map around shape study',open_by_choice:'open door want choose',leave_door:'walk away leave door refuse'
+};
+const INTENT_CUES={
+ investigate:'what why where when how who tell explain ask know mean proof evidence record find',
+ encourage_independence:'want choose decide choice yours your ready can if',
+ empathize:'sorry understand feel afraid care hear listen right deserve',
+ reassure:'believe here safe trust with you',
+ challenge:'no not do not should must wrong danger price trust',
+ confront:'listen obey act now monster afraid',
+ remain_silent:'silence silent quiet wait pause time nothing',
+ withdraw:'stop leave space withdraw not mine'
+};
+const CLARIFY_LINES={
+ asterion:['I am not sure whether that is advice or a question. Say which part you want me to answer.','I heard the words. I do not yet know what you are asking me to do with them.'],
+ medusa:['Be precise. Are you asking what happened, what I want, or what you think I should do?','That could mean several things, and I will not choose the convenient meaning for you.'],
+ echo:['I can map the sentence, but not your intention. Ask again without making me guess.','The words arrived. Their direction did not. Tell me what you want from the answer.']
+};
+function wordsOf(text){return String(text||'').toLowerCase().replace(/[^a-z0-9' ]/g,' ').split(/\s+/).filter(word=>word.length>1)}
+function scoreTypedChoice(text,choice){
+ const words=new Set(wordsOf(text)),choiceWords=wordsOf(choice.text),cueWords=wordsOf((CHOICE_CUES[choice.id]||'')+' '+(INTENT_CUES[choice.intent]||''));
+ let score=0;choiceWords.forEach(word=>{if(words.has(word))score+=word.length>5?3:2});cueWords.forEach(word=>{if(words.has(word))score+=2});
+ if(/[?]$/.test(text)&&choice.intent==='investigate')score+=2;
+ if(/\b(sorry|apolog)/i.test(text)&&choice.intent==='empathize')score+=4;
+ if(/\b(wait|quiet|silence|later)\b/i.test(text)&&choice.intent==='remain_silent')score+=3;
+ if(/\b(no|don't|do not|never|refuse)\b/i.test(text)&&['challenge','confront','withdraw'].includes(choice.intent))score+=2;
+ return score;
+}
+function interpretTypedChoice(text,choices){
+ const ranked=choices.map(choice=>({choice,score:scoreTypedChoice(text,choice)})).sort((a,b)=>b.score-a.score);
+ if(!ranked.length||ranked[0].score<3)return null;
+ if(ranked[1]&&ranked[0].score-ranked[1].score<2&&ranked[0].score<7)return null;
+ return ranked[0].choice;
+}
+function isMajorDialogueNode(node){return (node.choices||[]).some(choice=>window.StoryVaultDialogue.NODES[choice.nextNode]&&window.StoryVaultDialogue.NODES[choice.nextNode].ending)}
+function clearFreeformTimers(){clearTimeout(freeformHintTimer);clearInterval(freeformCountdownTimer);freeformHintTimer=null;freeformCountdownTimer=null}
+function revealSuggestions(){
+ clearFreeformTimers();const tray=document.getElementById('suggestionTray'),count=document.getElementById('promptCountdown');
+ if(tray)tray.classList.add('visible');if(count){count.textContent='Suggestions available';count.classList.add('ready')}
+}
+function beginSuggestionCountdown(){
+ clearFreeformTimers();let remaining=Math.ceil(FREEFORM_HINT_DELAY/1000);const count=document.getElementById('promptCountdown');
+ if(count)count.textContent='Suggestions in '+remaining+'s';
+ freeformCountdownTimer=setInterval(()=>{remaining-=1;if(count&&remaining>0)count.textContent='Suggestions in '+remaining+'s'},1000);
+ freeformHintTimer=setTimeout(revealSuggestions,FREEFORM_HINT_DELAY);
+}
+function renderFreeformComposer(node,choices,{showSuggestions=false,note=''}={}){
+ const box=document.getElementById('choices');box.innerHTML='';
+ const shell=document.createElement('div');shell.className='freeform-shell';
+ shell.innerHTML=`<div class="freeform-label"><span>Reply in your own words</span><span id="promptCountdown" class="prompt-countdown"></span></div><div class="freeform-row"><textarea id="freeformInput" class="freeform-input" rows="1" maxlength="360" placeholder="Type to ${CAMPAIGNS[run.id].name}…" aria-label="Type your reply"></textarea><button id="freeformSend" class="freeform-send" type="button">Send</button></div>${note?`<div class="interpretation-note">${note}</div>`:''}<div id="suggestionTray" class="suggestion-tray"></div>`;
+ box.appendChild(shell);const input=document.getElementById('freeformInput'),send=document.getElementById('freeformSend'),tray=document.getElementById('suggestionTray');
+ choices.forEach(choice=>{const b=document.createElement('button');b.className='suggestion-chip';b.textContent=choice.text;b.onclick=()=>submitTypedReply(choice.text,choice.id);tray.appendChild(b)});
+ send.onclick=()=>submitTypedReply(input.value);input.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitTypedReply(input.value)}});input.addEventListener('input',()=>{input.style.height='auto';input.style.height=Math.min(132,input.scrollHeight)+'px'});
+ if(showSuggestions)revealSuggestions();else beginSuggestionCountdown();input.focus();box.scrollTop=0;
+}
+async function submitTypedReply(raw,forcedChoiceId){
+ const text=String(raw||'').trim();if(!text)return;
+ const Engine=window.StoryVaultDialogue,character=engineCharacter(),node=Engine.NODES[run.engineNode],choices=Engine.available(node,character),choice=forcedChoiceId?choices.find(item=>item.id===forcedChoiceId):interpretTypedChoice(text,choices);
+ clearFreeformTimers();document.querySelectorAll('#choices button,#choices textarea').forEach(control=>control.disabled=true);addMsg('you',text);
+ if(!choice){
+  const lines=CLARIFY_LINES[run.id]||CLARIFY_LINES.echo,line=lines[(character.clarifications||0)%lines.length];character.clarifications=(character.clarifications||0)+1;character.memory.push({id:'unresolved_input',nodeId:node.id,character:run.id,intent:'unclear',statement:text,tags:['player_input_unclear'],at:Date.now(),storyTime:character.history.length+1,state:structuredClone(character.state),referenced:false,unresolved:true});persist();
+  const t=typing();await wait(replyTypingDelay(line));t.remove();addMsg('them',line);renderFreeformComposer(node,choices,{showSuggestions:true,note:'The signal could not confidently read your intent. Nothing was chosen for you.'});return;
+ }
+ await chooseEngine(choice.id,text,true);
+}
 function startEngineCampaign(id){
  const Engine=window.StoryVaultDialogue;
  save=Engine.migrate(save);
  const campaignId=id||'asterion',c=CAMPAIGNS[campaignId],character=engineCharacter(campaignId),active=save.dialogue.active;
  if(campaignId==='echo')syncEchoCrossCampaignMemory();
  const resuming=!!(active&&active.campaign===campaignId&&Engine.NODES[active.node]);
+ if(!save.dialogue.visits)save.dialogue.visits={};
+ if(!resuming){save.dialogue.visits[campaignId]=(save.dialogue.visits[campaignId]||0)+1;character.sessionStartedAt=Date.now();}
+ const visitNumber=save.dialogue.visits[campaignId]||1;
  activeEndingId=null;
- run={id:campaignId,engine:true,engineNode:resuming?active.node:campaignId+'_opening_001',branch:null,inquiries:{},stats:{trust:0,self:0,nuance:0,autonomy:0,reliance:0,fear:0,suspicion:0,ariadne:0,theseus:0,escape:0,return:0,cut:0,evidence:0,testimony:0,sisters:0,monster:0,mirror:0,confront:0,archive:0,burn:0,false:0,room:0,open:0,bridge:0,leave:0},flags:{},log:[]};
+ run={id:campaignId,engine:true,engineNode:resuming?active.node:campaignId+'_opening_001',visitNumber,branch:null,inquiries:{},stats:{trust:0,self:0,nuance:0,autonomy:0,reliance:0,fear:0,suspicion:0,ariadne:0,theseus:0,escape:0,return:0,cut:0,evidence:0,testimony:0,sisters:0,monster:0,mirror:0,confront:0,archive:0,burn:0,false:0,room:0,open:0,bridge:0,leave:0},flags:{},log:[]};
  if(!resuming)Engine.enter(character,Engine.NODES[run.engineNode]);save.dialogue.active={campaign:campaignId,node:run.engineNode,at:Date.now()};persist();
  document.getElementById('contactName').textContent=c.name;document.getElementById('contactStatus').textContent='CONNECTED';applyContactIdentity(campaignId,false);document.getElementById('chat').innerHTML='';document.getElementById('choices').innerHTML='';const wrap=document.getElementById('chatWrap');wrap.className='chat-wrap theme-'+campaignId;applyChatBackdrop(campaignId,false);showScreen('chatScreen');
- if(resuming){sequence([['them','The channel reconnects. I am still here.']]).then(()=>renderEngineNode())}
- else sequence(campaignIntro(campaignId).map(x=>['them',x])).then(()=>renderEngineNode());
+ if(resuming){
+  const returns=RESUME_SIGNALS[campaignId]||['The channel reconnects. I am still here.'];character.reconnectCount=(character.reconnectCount||0)+1;persist();
+  sequence([['them',returns[(character.reconnectCount-1)%returns.length]]]).then(()=>renderEngineNode());
+ }
+ else{
+  const signals=VISIT_SIGNALS[campaignId]||[],visitSignal=signals[(visitNumber-1)%Math.max(1,signals.length)];
+  const opening=visitNumber===1?campaignIntro(campaignId):[visitSignal];
+  sequence(opening.filter(Boolean).map(x=>['them',x])).then(()=>renderEngineNode());
+ }
 }
 async function renderEngineNode(){
  const Engine=window.StoryVaultDialogue,character=engineCharacter(),node=Engine.NODES[run.engineNode];
@@ -3100,17 +3239,22 @@ async function renderEngineNode(){
  }
  const t=typing();await wait(replyTypingDelay(Engine.textFor(node,character)));t.remove();addMsg('them',Engine.textFor(node,character));
  if(node.ending){renderEngineEndingGate(node);return}
- const box=document.getElementById('choices');box.innerHTML='';
- const label=document.createElement('div');label.className='choice-section-label answer';label.textContent=node.initiated?CAMPAIGNS[run.id].name+' asks':'Reply';box.appendChild(label);
- Engine.available(node,character).forEach(choice=>{const button=document.createElement('button');button.className='choice';button.textContent=choice.text;button.onclick=()=>chooseEngine(choice.id);box.appendChild(button)});
- box.scrollTop=0;alignChatToMessageBoundary();
+ const choices=Engine.available(node,character);
+ if(isMajorDialogueNode(node)){
+  const box=document.getElementById('choices');box.innerHTML='';
+  const label=document.createElement('div');label.className='choice-section-label answer';label.textContent='A decision with consequences';box.appendChild(label);
+  choices.forEach(choice=>{const button=document.createElement('button');button.className='choice';button.textContent=choice.text;button.onclick=()=>chooseEngine(choice.id,choice.text,false);box.appendChild(button)});
+  box.scrollTop=0;
+ }else renderFreeformComposer(node,choices);
+ alignChatToMessageBoundary();
 }
-async function chooseEngine(choiceId){
+async function chooseEngine(choiceId,playerText,alreadyAdded=false){
  const Engine=window.StoryVaultDialogue,character=engineCharacter(),node=Engine.NODES[run.engineNode],choice=Engine.available(node,character).find(item=>item.id===choiceId);
  if(!choice)return;
+ clearFreeformTimers();
  document.querySelectorAll('.choice').forEach(button=>button.disabled=true);
- addMsg('you',choice.intent==='remain_silent'?'…':choice.text);
- const memory=Engine.applyChoice(character,node,choice);run.log.push({nodeId:node.id,choiceId:choice.id,text:choice.text,memoryId:memory.at});
+ if(!alreadyAdded)addMsg('you',choice.intent==='remain_silent'?'…':(playerText||choice.text));
+ const actualText=playerText||choice.text,memory=Engine.applyChoice(character,node,choice,actualText);run.log.push({nodeId:node.id,choiceId:choice.id,text:actualText,memoryId:memory.at});
  if(choice.reply){const replyTyping=typing();await wait(replyTypingDelay(choice.reply));replyTyping.remove();addMsg('them',choice.reply)}
  run.engineNode=choice.nextNode;const next=Engine.NODES[run.engineNode];Engine.enter(character,next);persist();
  save.dialogue.active={campaign:run.id,node:run.engineNode,at:Date.now()};persist();
@@ -3569,7 +3713,7 @@ function finishCampaign(){
 function endingArtMarkup(id,label){const art=ENDING_ART[id];return art?`<div class="ending-art" style="--ending-art:url('${art}')" role="img" aria-label="${label} conclusion artwork"></div>`:''}
 function renderConclusionRevealGate(id,lens,e){const c=CAMPAIGNS[run.id];document.getElementById('endingReveal').innerHTML=`<div class="ending-gate"><div class="mark">${c.mark}</div><div class="eyebrow">Signal complete, ${lens} lens</div><h2>${e[1]}</h2><p>The final record is ready. Continue when you want to receive it.</p><div class="actions"><button class="primary" onclick="revealEnding('${id}','${lens}')">Continue</button></div></div>`}
 function revealEnding(id,lens){const all=[...ENDINGS.asterion,...ENDINGS.medusa,...ENDINGS.echo];const e=all.find(x=>x[0]===id);const c=CAMPAIGNS[run.id];activeEndingId=id;applyScreenArt('endingScreen');document.getElementById('endingReveal').innerHTML=`${endingArtMarkup(id,e[1])}<div class="mark">${c.mark}</div><div class="eyebrow">Ending recovered, ${lens} lens</div><h2>${e[1]}</h2><div class="ending-copy">${e[2]}</div><p>${endingFlavor(id,lens)}</p><div class="actions"><button class="primary" onclick="openPostContact('${run.id}')">Keep talking</button><button class="ghost" onclick="startCampaign('${run.id}')">Replay story</button><button class="ghost" onclick="showVault()">View ending vault</button><button class="ghost" onclick="showScreen('home')">Return to stories</button></div>`}
-function finishCampaign(){const id=resolveEnding();const all=[...ENDINGS.asterion,...ENDINGS.medusa,...ENDINGS.echo];const e=all.find(x=>x[0]===id);const lens=lensFor();const entry={campaign:run.id,ending:id,lens,at:Date.now(),stats:run.stats};if(run.engine){const character=engineCharacter(run.id);entry.dialogue={version:2,outcome:run.engineOutcome,state:structuredClone(character.state),memory:character.memory.map(item=>({id:item.id,nodeId:item.nodeId,tags:item.tags,at:item.at,referenced:item.referenced,unresolved:item.unresolved}))};save.dialogue.active=null}save.unlocked[id]=Date.now();save.lenses[id]=lens;save.runs=(save.runs||0)+1;save.history.push(entry);maybeUnlockSecret();persist();activeEndingId=id;showScreen('endingScreen');renderConclusionRevealGate(id,lens,e)}
+function finishCampaign(){const id=resolveEnding();const all=[...ENDINGS.asterion,...ENDINGS.medusa,...ENDINGS.echo];const e=all.find(x=>x[0]===id);const lens=lensFor();const entry={campaign:run.id,ending:id,lens,at:Date.now(),stats:run.stats};if(run.engine){const character=engineCharacter(run.id);entry.dialogue={version:3,outcome:run.engineOutcome,state:structuredClone(character.state),memory:character.memory.map(item=>({id:item.id,nodeId:item.nodeId,statement:item.statement||'',tags:item.tags,at:item.at,referenced:item.referenced,unresolved:item.unresolved}))};save.dialogue.active=null}save.unlocked[id]=Date.now();save.lenses[id]=lens;save.runs=(save.runs||0)+1;save.history.push(entry);maybeUnlockSecret();persist();activeEndingId=id;showScreen('endingScreen');renderConclusionRevealGate(id,lens,e)}
 function resolveEnding(){if(run&&run.engine&&run.engineEnding)return run.engineEnding;const s=run.stats;
  if(run.id==='asterion'){
   if(run.flags.a_route_shared||run.flags.a_unmapped)return'a6';

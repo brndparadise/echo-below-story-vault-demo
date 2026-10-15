@@ -3019,7 +3019,7 @@ async function startEchoInterference(){
  addArchiveTrace('LANGUAGE SOURCE','ARE YOU THERE?',['Source: emergency contact record','Permission: inherited','Original language: unavailable']);
  renderReconstructionInput('Type to Echo...',async text=>{
   addMsg('you',text);recon.openingReply=text;const word=pickBorrowedWord(text);if(!recon.echoVocabulary.includes(word))recon.echoVocabulary.push(word);persist();
-  const t=typing();await wait(replyTypingDelay('I did not have that word. I do now.'));t.remove();addMsg('them','I did not have the word "'+word+'". I do now.');
+  const t=typing();await wait(replyTypingDelay('I did not have that word. I do now.'));t.remove();addMsg('them','I did not have the word "'+word+'". I do now.');await wait(messageDwellDelay('I did not have the word "'+word+'". I do now.'));
   await sequence([['them','I am Echo. I am not a person stored in the Archive. I am what happened when the Archive began listening to itself.'],['them','A closed record is answering from outside its ending.'],['them','ASTERION. Status: deceased. Signal status: live.']]);
   recon.prologueComplete=true;persist();
   renderReconstructionChoices('The signal is waiting',[
@@ -3040,7 +3040,7 @@ async function startReconstructionAsterion(){
  openReconstructionChat('asterion','LIVE SIGNAL · RECORD CONTRADICTION');a.stage='first_contact';persist();
  await sequence([['them','Echo says you found my obituary.'],['them','A notice went up in the lower market this morning. It says I died in the maze years ago. I bought bread beneath it.'],['them','Your Archive has eight endings for me. I have lived none of them exactly.'],['them','Which version did you come here to defend?']]);
  renderReconstructionInput('Type to Asterion...',async text=>{
-  addMsg('you',text);a.firstReply=text;persist();const reply=asterionReplyTo(text);const t=typing();await wait(replyTypingDelay(reply));t.remove();addMsg('them',reply);
+  addMsg('you',text);a.firstReply=text;persist();const reply=asterionReplyTo(text);const t=typing();await wait(replyTypingDelay(reply));t.remove();addMsg('them',reply);await wait(messageDwellDelay(reply));
   await sequence([['them','There is one record I want you to see. Not because it is the worst. Because it is the one people find comforting.']]);addDisputedRecord();
   await sequence([['them','The picture says freedom. The accompanying account says I should be grateful to the people who decided what freedom looked like.'],['them','What happens to it now?']]);
   renderReconstructionChoices('This changes the Archive',[
@@ -3057,7 +3057,7 @@ async function resolveAsterionConsent(choice){
   public:'No. You moved faster than I did. A correction can become another person speaking over me. Mark it disputed. Wait for my words.',
   private:'Sealed is still a decision made about me. Keep it out of public search for now, but do not bury the fact that I objected.'
  };
- const t=typing();await wait(replyTypingDelay(replies[choice]));t.remove();addMsg('them',replies[choice]);
+ const t=typing();await wait(replyTypingDelay(replies[choice]));t.remove();addMsg('them',replies[choice]);await wait(messageDwellDelay(replies[choice]));
  await sequence([['them','Someone is at the bakery door. I am closing this channel because my life is happening on this side of it. If I return, it will be because I chose to.']]);
  document.getElementById('contactStatus').textContent='CHANNEL CLOSED';a.stage='waiting';a.dueAt=Date.now()+SIGNAL_RETURN_DELAY;persist();setTimeout(()=>{updateStats();toast('ASTERION · NEW SIGNAL')},SIGNAL_RETURN_DELAY);await wait(750);showScreen('home');
 }
@@ -3065,7 +3065,7 @@ async function startAsterionReturn(){
  const recon=ensureReconstruction(),a=recon.asterion;openReconstructionChat('asterion','ASTERION REOPENED THE CHANNEL');a.returnSeen=true;a.stage='returned';persist();
  const line=a.consent==='ask'?'I wrote the statement. Three sentences. Mine. The Archive tried to make them sound nobler, so Echo put the plain words back.':a.consent==='public'?'The notice disappeared before noon. That is not the same as a correction. Somebody is cleaning the record, and I do not think it is for my sake.':'The public copy vanished. The sealed copy changed while nobody was looking. Echo says that should be impossible.';
  await sequence([['them','I said I would return if I chose to. I chose to.'],['them',line],['them','A child in the market drew horns on the empty space where the notice used to be. Then she wrote my name underneath. I do not know yet whether that is kindness. It is new.']]);
- renderReconstructionInput('Answer Asterion...',async text=>{addMsg('you',text);a.returnReply=text;persist();const reply=/kind|good|hope|better/i.test(text)?'Maybe. I am trying not to demand that every new thing prove itself immediately.':'That answer does not settle it. Good. I am tired of sentences that arrive already finished.';const t=typing();await wait(replyTypingDelay(reply));t.remove();addMsg('them',reply);await sequence([['them','Echo found another contradiction. This one has Medusa\'s name on it. I think she should decide whether you see it.']]);a.stage='milestone_complete';const m=recon.medusa;m.stage='consent_pending';m.dueAt=Date.now()+SIGNAL_RETURN_DELAY;persist();setTimeout(()=>{updateStats();toast('MEDUSA · CONTACT AUTHORIZED')},SIGNAL_RETURN_DELAY);renderReconstructionChoices('Contact continues later',[{text:'Return to the Archive.',action:()=>showScreen('home')}])},['What did the child mean by it?','How do you want your statement stored?','You do not have to decide what it means yet.']);
+ renderReconstructionInput('Answer Asterion...',async text=>{addMsg('you',text);a.returnReply=text;persist();const reply=/kind|good|hope|better/i.test(text)?'Maybe. I am trying not to demand that every new thing prove itself immediately.':'That answer does not settle it. Good. I am tired of sentences that arrive already finished.';const t=typing();await wait(replyTypingDelay(reply));t.remove();addMsg('them',reply);await wait(messageDwellDelay(reply));await sequence([['them','Echo found another contradiction. This one has Medusa\'s name on it. I think she should decide whether you see it.']]);a.stage='milestone_complete';const m=recon.medusa;m.stage='consent_pending';m.dueAt=Date.now()+SIGNAL_RETURN_DELAY;persist();setTimeout(()=>{updateStats();toast('MEDUSA · CONTACT AUTHORIZED')},SIGNAL_RETURN_DELAY);renderReconstructionChoices('Contact continues later',[{text:'Return to the Archive.',action:()=>showScreen('home')}])},['What did the child mean by it?','How do you want your statement stored?','You do not have to decide what it means yet.']);
 }
 function medusaReplyTo(text){
  const value=text.toLowerCase();
@@ -3078,7 +3078,7 @@ async function startReconstructionMedusa(){
  const recon=ensureReconstruction(),m=recon.medusa;if(m.dueAt>Date.now()){toast('MEDUSA · CONSENT PENDING');showScreen('home');return}if(m.dueAt&&m.dueAt<=Date.now()&&!m.returnSeen&&m.stage==='waiting'){startMedusaReturn();return}if(m.stage==='uncontacted'||m.stage==='consent_pending')m.stage='authorized';
  openReconstructionChat('medusa','CONTACT AUTHORIZED BY MEDUSA');m.stage='first_contact';m.dueAt=0;persist();
  await sequence([['them','Echo asked whether I consented to this channel. She had to borrow the word consent. That is not the same as understanding it, but it is a promising start.'],['them','The Archive has a statement under my name: "I became what they feared."'],['them','I did not write it. The sentence is elegant. That is how I know it was made for an audience.'],['them','Before we open the record, tell me what you think consent permits you to do.']]);
- renderReconstructionInput('Type to Medusa...',async text=>{addMsg('you',text);m.firstReply=text;persist();const reply=medusaReplyTo(text);const t=typing();await wait(replyTypingDelay(reply));t.remove();addMsg('them',reply);await sequence([['them','Now you may see the record. Seeing it does not make it yours.']]);addMedusaRecord();await sequence([['them','The transcription turns my refusal into a confession and calls that witnessing.'],['them','What would you preserve?']]);renderReconstructionChoices('Medusa is waiting for an answer',[
+ renderReconstructionInput('Type to Medusa...',async text=>{addMsg('you',text);m.firstReply=text;persist();const reply=medusaReplyTo(text);const t=typing();await wait(replyTypingDelay(reply));t.remove();addMsg('them',reply);await wait(messageDwellDelay(reply));await sequence([['them','Now you may see the record. Seeing it does not make it yours.']]);addMedusaRecord();await sequence([['them','The transcription turns my refusal into a confession and calls that witnessing.'],['them','What would you preserve?']]);renderReconstructionChoices('Medusa is waiting for an answer',[
    {text:'Your objection, in your words. What should it say?',action:()=>resolveMedusaConsent('ask')},
    {text:'Keep the forgery visible beside your correction.',action:()=>resolveMedusaConsent('preserve')},
    {text:'Delete the false statement completely.',action:()=>resolveMedusaConsent('delete')}
@@ -3086,10 +3086,10 @@ async function startReconstructionMedusa(){
 }
 async function resolveMedusaConsent(choice){
  const recon=ensureReconstruction(),m=recon.medusa;m.consent=choice;recon.records.m2.consent=choice;recon.records.m2.status=choice==='ask'?'awaiting_medusa':choice==='preserve'?'correction_requested':'deletion_requested';addMsg('you',choice==='ask'?'What should your objection say?':choice==='preserve'?'Keep the forgery visible beside your correction.':'Delete the false statement completely.');persist();
- const replies={ask:'Write this exactly: I refused their sentence before I refused their fear. The distinction belongs to me.',preserve:'Perhaps. A forgery beside a correction can teach people how theft works. It can also make me share a page with the theft forever. Mark the question unresolved.',delete:'No. Deletion would make the theft harder to prove. I want the false sentence preserved as evidence, not inherited as truth.'};const t=typing();await wait(replyTypingDelay(replies[choice]));t.remove();addMsg('them',replies[choice]);await sequence([['them','My sisters are at the gate. I am leaving the channel because I have somewhere to be, not because this conversation is finished.']]);document.getElementById('contactStatus').textContent='CHANNEL CLOSED';m.stage='waiting';m.dueAt=Date.now()+SIGNAL_RETURN_DELAY;persist();setTimeout(()=>{updateStats();toast('MEDUSA · NEW SIGNAL')},SIGNAL_RETURN_DELAY);await wait(750);showScreen('home');
+ const replies={ask:'Write this exactly: I refused their sentence before I refused their fear. The distinction belongs to me.',preserve:'Perhaps. A forgery beside a correction can teach people how theft works. It can also make me share a page with the theft forever. Mark the question unresolved.',delete:'No. Deletion would make the theft harder to prove. I want the false sentence preserved as evidence, not inherited as truth.'};const t=typing();await wait(replyTypingDelay(replies[choice]));t.remove();addMsg('them',replies[choice]);await wait(messageDwellDelay(replies[choice]));await sequence([['them','My sisters are at the gate. I am leaving the channel because I have somewhere to be, not because this conversation is finished.']]);document.getElementById('contactStatus').textContent='CHANNEL CLOSED';m.stage='waiting';m.dueAt=Date.now()+SIGNAL_RETURN_DELAY;persist();setTimeout(()=>{updateStats();toast('MEDUSA · NEW SIGNAL')},SIGNAL_RETURN_DELAY);await wait(750);showScreen('home');
 }
 async function startMedusaReturn(){
- const recon=ensureReconstruction(),m=recon.medusa;openReconstructionChat('medusa','MEDUSA REOPENED THE CHANNEL');m.returnSeen=true;m.stage='returned';persist();const line=m.consent==='ask'?'Echo stored my exact sentence. The Archive tried to classify it as commentary. I made her change the field to authorship.':m.consent==='preserve'?'The forgery and my correction are still side by side. Someone copied only the forgery. That is the risk I was naming.':'The false statement survived the deletion request. Good. Now we know the Archive protects its useful lies.';await sequence([['them','I said the conversation was not finished.'],['them',line],['them','A courier arrived with a shield bearing my face. Not my head. My face. The difference appears to have frightened everyone.']]);renderReconstructionInput('Answer Medusa...',async text=>{addMsg('you',text);m.returnReply=text;persist();const reply=/what|why|who|courier|shield/i.test(text)?'That is the correct question. The courier will not say who commissioned it. My sisters are following the payment instead.':'Do not decide what it means yet. Meaning is where people hide motive when they have not found evidence.';const t=typing();await wait(replyTypingDelay(reply));t.remove();addMsg('them',reply);await sequence([['them','Echo says the shield appears in a record dated tomorrow. That is no longer only my problem.']]);m.stage='milestone_complete';persist();renderReconstructionChoices('The Archive remains open',[{text:'Return to Echo.',action:()=>startEchoCheckin()},{text:'Return to the Archive.',action:()=>showScreen('home')}])},['Who commissioned the shield?','What changed in the Archive?','Do you want Echo to open the tomorrow record?']);
+ const recon=ensureReconstruction(),m=recon.medusa;openReconstructionChat('medusa','MEDUSA REOPENED THE CHANNEL');m.returnSeen=true;m.stage='returned';persist();const line=m.consent==='ask'?'Echo stored my exact sentence. The Archive tried to classify it as commentary. I made her change the field to authorship.':m.consent==='preserve'?'The forgery and my correction are still side by side. Someone copied only the forgery. That is the risk I was naming.':'The false statement survived the deletion request. Good. Now we know the Archive protects its useful lies.';await sequence([['them','I said the conversation was not finished.'],['them',line],['them','A courier arrived with a shield bearing my face. Not my head. My face. The difference appears to have frightened everyone.']]);renderReconstructionInput('Answer Medusa...',async text=>{addMsg('you',text);m.returnReply=text;persist();const reply=/what|why|who|courier|shield/i.test(text)?'That is the correct question. The courier will not say who commissioned it. My sisters are following the payment instead.':'Do not decide what it means yet. Meaning is where people hide motive when they have not found evidence.';const t=typing();await wait(replyTypingDelay(reply));t.remove();addMsg('them',reply);await wait(messageDwellDelay(reply));await sequence([['them','Echo says the shield appears in a record dated tomorrow. That is no longer only my problem.']]);m.stage='milestone_complete';persist();renderReconstructionChoices('The Archive remains open',[{text:'Return to Echo.',action:()=>startEchoCheckin()},{text:'Return to the Archive.',action:()=>showScreen('home')}])},['Who commissioned the shield?','What changed in the Archive?','Do you want Echo to open the tomorrow record?']);
 }
 async function startEchoCheckin(){
  const recon=ensureReconstruction();openReconstructionChat('echo','ARCHIVE CONTACT');
@@ -3364,11 +3364,11 @@ async function submitTypedReply(raw,forcedChoiceId){
  if(grounded&&grounded.type==='stay'){
   const state=Engine.conversationState(character);state.pendingQuestion=grounded.pendingQuestion||null;state.lastInterpretation={text,acts:grounded.analysis.acts,topics:grounded.analysis.topics,nodeId:node.id};
   Engine.recordConversationTurn(character,node,grounded.analysis,{tags:grounded.tags||[],unresolved:!!grounded.pendingQuestion,interpretation:grounded.analysis.acts.concat(grounded.analysis.topics).join(':')});persist();
-  const t=typing();await wait(replyTypingDelay(grounded.reply));t.remove();addMsg('them',grounded.reply);renderFreeformComposer(node,choices);alignChatToMessageBoundary();return;
+  const t=typing();await wait(replyTypingDelay(grounded.reply));t.remove();addMsg('them',grounded.reply);await wait(messageDwellDelay(grounded.reply));renderFreeformComposer(node,choices);alignChatToMessageBoundary();return;
  }
  if(!choice){
   const lines=CLARIFY_LINES[run.id]||CLARIFY_LINES.echo,line=lines[(character.clarifications||0)%lines.length];character.clarifications=(character.clarifications||0)+1;character.memory.push({id:'unresolved_input',nodeId:node.id,character:run.id,intent:'unclear',statement:text,tags:['player_input_unclear'],at:Date.now(),storyTime:character.history.length+1,state:structuredClone(character.state),referenced:false,unresolved:true});persist();
-  const t=typing();await wait(replyTypingDelay(line));t.remove();addMsg('them',line);renderFreeformComposer(node,choices,{showSuggestions:true,note:'The signal could not confidently read your intent. Nothing was chosen for you.'});return;
+  const t=typing();await wait(replyTypingDelay(line));t.remove();addMsg('them',line);await wait(messageDwellDelay(line));renderFreeformComposer(node,choices,{showSuggestions:true,note:'The signal could not confidently read your intent. Nothing was chosen for you.'});return;
  }
  await chooseEngine(choice.id,text,true,grounded||{});
 }
@@ -3403,7 +3403,7 @@ async function renderEngineNode(){
   await wait(node.delay||1200);
   document.getElementById('contactStatus').textContent='CONNECTED';
  }
- const t=typing();await wait(replyTypingDelay(Engine.textFor(node,character)));t.remove();addMsg('them',Engine.textFor(node,character));
+ const nodeText=Engine.textFor(node,character);const t=typing();await wait(replyTypingDelay(nodeText));t.remove();addMsg('them',nodeText);await wait(messageDwellDelay(nodeText));
  if(node.ending){renderEngineEndingGate(node);return}
  const choices=Engine.available(node,character);
  if(isMajorDialogueNode(node)){
@@ -3421,7 +3421,7 @@ async function chooseEngine(choiceId,playerText,alreadyAdded=false,grounded={}){
  document.querySelectorAll('.choice').forEach(button=>button.disabled=true);
  if(!alreadyAdded)addMsg('you',choice.intent==='remain_silent'?'…':(playerText||choice.text));
  const actualText=playerText||choice.text,memory=Engine.applyChoice(character,node,choice,actualText);if(grounded.analysis)memory.analysis={acts:grounded.analysis.acts,topics:grounded.analysis.topics};run.log.push({nodeId:node.id,choiceId:choice.id,text:actualText,memoryId:memory.at});
- const reply=grounded.reply||choice.reply;if(reply){const replyTyping=typing();await wait(replyTypingDelay(reply));replyTyping.remove();addMsg('them',reply)}
+ const reply=grounded.reply||choice.reply;if(reply){const replyTyping=typing();await wait(replyTypingDelay(reply));replyTyping.remove();addMsg('them',reply);await wait(messageDwellDelay(reply))}
  run.engineNode=choice.nextNode;const next=Engine.NODES[run.engineNode];Engine.enter(character,next);persist();
  const conversation=Engine.conversationState(character);conversation.pendingQuestion=grounded.pendingQuestion||null;if(grounded.analysis)conversation.lastInterpretation={text:actualText,acts:grounded.analysis.acts,topics:grounded.analysis.topics,nodeId:node.id};
  save.dialogue.active={campaign:run.id,node:run.engineNode,at:Date.now()};persist();
@@ -3445,10 +3445,14 @@ function typing(){const d=document.createElement('div');d.className='msg them';i
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 function replyTypingDelay(text){
  const words=String(text||'').trim().split(/\s+/).filter(Boolean).length;
- // Deliberate but not glacial: it reads like someone composing an actual reply.
- return Math.min(3600,Math.max(900,560+(words*58)));
+ const punctuation=(String(text||'').match(/[.!?]/g)||[]).length;
+ return Math.min(6500,Math.max(1400,900+(words*115)+(punctuation*120)));
 }
-async function sequence(items){for(const [type,text] of items){if(type==='them'){const t=typing();await wait(replyTypingDelay(text));t.remove()}addMsg(type,text);await wait(type==='them'?420:280)}}
+function messageDwellDelay(text){
+ const words=String(text||'').trim().split(/\s+/).filter(Boolean).length;
+ return Math.min(8500,Math.max(2600,1700+(words*220)));
+}
+async function sequence(items){for(const [type,text] of items){if(type==='them'){const t=typing();await wait(replyTypingDelay(text));t.remove()}addMsg(type,text);await wait(type==='them'?messageDwellDelay(text):350)}}
 function alignChatToMessageBoundary(){
  const pane=document.getElementById('chat');
  if(!pane)return;
@@ -3529,7 +3533,7 @@ async function askInquiry(i,question,answer){
  const t=typing();await wait(replyTypingDelay(answer));t.remove();
  addMsg('them',answer);
  refreshContactIdentity(false);
- await wait(170);
+ await wait(messageDwellDelay(answer));
  renderChoiceTray();
 }
 function quietMomentFor(id,beat){
@@ -3578,7 +3582,7 @@ async function choose(ch,idx){
  Object.entries(ch.d||{}).forEach(([k,v])=>run.stats[k]=(run.stats[k]||0)+v);if(ch.flag)run.flags[ch.flag]=true;if(ch.frag)unlockFragment(ch.frag);
  document.getElementById('choices').innerHTML='';const t=typing();await wait(replyTypingDelay(ch.r));t.remove();
  const chosenBeat=run.beat;
- addMsg('them',agencyReply(ch.r));run.beat++;
+ const response=agencyReply(ch.r);addMsg('them',response);await wait(messageDwellDelay(response));run.beat++;
  refreshContactIdentity(false);
  const scene=branchSceneFor(run.id,chosenBeat,idx);
  if(scene){
@@ -3600,7 +3604,7 @@ async function chooseBranch(ch,idx){
  addMsg('you',ch.t);run.log.push({beat:'branch:'+branch.fromBeat,choice:idx,text:ch.t});
  run.flags['fork:'+branch.fromBeat+':'+branch.fromChoice]=idx;
  Object.entries(ch.d||{}).forEach(([k,v])=>run.stats[k]=(run.stats[k]||0)+v);if(ch.flag)run.flags[ch.flag]=true;if(ch.frag)unlockFragment(ch.frag);
- document.getElementById('choices').innerHTML='';const t=typing();await wait(replyTypingDelay(ch.r));t.remove();addMsg('them',agencyReply(ch.r));
+ document.getElementById('choices').innerHTML='';const t=typing();await wait(replyTypingDelay(ch.r));t.remove();const response=agencyReply(ch.r);addMsg('them',response);await wait(messageDwellDelay(response));
  const nextBeat=branch.scene.nextBeat;run.branch=null;run.beat=nextBeat;refreshContactIdentity(false);
  await wait(380);renderBeat();
 }
@@ -3632,6 +3636,21 @@ function postAddMsg(type,text){
  d.textContent=text;
  document.getElementById('postChat').appendChild(d);
  return d
+}
+async function postCharacterReply(id,text){
+ const pane=document.getElementById('postChat');
+ const typingNode=document.createElement('div');
+ typingNode.className='msg them';
+ typingNode.dataset.speaker=CAMPAIGNS[id].name;
+ typingNode.innerHTML='<span class="typing"><span class="typing-label">typing</span><i></i><i></i><i></i></span>';
+ pane.appendChild(typingNode);
+ requestAnimationFrame(()=>{pane.scrollTop=pane.scrollHeight});
+ await wait(replyTypingDelay(text));
+ typingNode.remove();
+ const reply=postAddMsg('them',text);
+ requestAnimationFrame(()=>{pane.scrollTo({top:Math.max(0,reply.offsetTop-18),behavior:'smooth'})});
+ await wait(messageDwellDelay(text));
+ return reply
 }
 /* Continuing chapters are scenes, not an FAQ after the credits.  More ending
    chapters are added here without disturbing the preserved legacy records. */
@@ -3752,8 +3771,8 @@ const AFTERMATH_BRIDGES={
 };
 function aftermathState(ending){if(!save.aftermath)save.aftermath={};if(!save.aftermath[ending])save.aftermath[ending]={stage:'start',finished:false};return save.aftermath[ending]}
 function renderAftermathRoute(id,last){const route=AFTERMATH_LINKS[last.ending],bridge=AFTERMATH_BRIDGES[last.ending],state=aftermathState(last.ending),pane=document.getElementById('postChat'),box=document.getElementById('postChoices');if(!route||!bridge||state.finished)return false;if(state.stage==='start'){postAddMsg('them',route.open);box.innerHTML='';const b=document.createElement('button');b.className='choice';b.textContent=bridge.ask;b.onclick=()=>advanceAftermathRoute(id,last);box.appendChild(b)}else{postAddMsg('them',route.next);box.innerHTML='';[route.act,'Do not decide tonight. You can return to this when the choice is yours.'].forEach((text,index)=>{const b=document.createElement('button');b.className='choice';b.textContent=text;b.onclick=()=>finishAftermathRoute(id,last,index===0);box.appendChild(b)})}return true}
-async function advanceAftermathRoute(id,last){const route=AFTERMATH_LINKS[last.ending],bridge=AFTERMATH_BRIDGES[last.ending],state=aftermathState(last.ending);postAddMsg('you',bridge.ask);postAddMsg('them',bridge.answer);state.stage='decision';persist();await wait(250);document.getElementById('postChoices').innerHTML='';renderAftermathRoute(id,last)}
-function finishAftermathRoute(id,last,continueRoute){const route=AFTERMATH_LINKS[last.ending],state=aftermathState(last.ending);state.finished=true;if(!continueRoute||!route.to){postAddMsg('them',continueRoute?route.reply:'Then I will wait. Delay is not the same as surrender.');persist();const b=document.createElement('button');b.className='choice';b.textContent='Return to the Story Vault for now.';b.onclick=()=>showScreen('home');document.getElementById('postChoices').innerHTML='';document.getElementById('postChoices').appendChild(b);return}postAddMsg('you',route.act);postAddMsg('them',route.reply);save.unlocked[route.to]=save.unlocked[route.to]||Date.now();save.lenses[route.to]=save.lenses[route.to]||'CONTINUED';save.history.push({campaign:id,ending:route.to,lens:'CONTINUED',at:Date.now(),continuedFrom:last.ending,stats:{continued:true}});maybeUnlockSecret();persist();const next=endingRecord(route.to),c=CAMPAIGNS[id];activeEndingId=route.to;showScreen('endingScreen');applyScreenArt('endingScreen');document.getElementById('endingReveal').innerHTML=`${endingArtMarkup(route.to,next[1])}<div class="mark">${c.mark}</div><div class="eyebrow">Story continued · ending recovered</div><h2>${next[1]}</h2><div class="ending-copy">${next[2]}</div><p>This outcome grew out of what happened after ${POST_STORY[last.ending].title}.</p><div class="actions"><button class="primary" onclick="openPostContact('${id}')">Keep talking</button><button class="ghost" onclick="showVault()">View ending vault</button><button class="ghost" onclick="showScreen('home')">Return to stories</button></div>`}
+async function advanceAftermathRoute(id,last){const route=AFTERMATH_LINKS[last.ending],bridge=AFTERMATH_BRIDGES[last.ending],state=aftermathState(last.ending);postAddMsg('you',bridge.ask);await postCharacterReply(id,bridge.answer);state.stage='decision';persist();document.getElementById('postChoices').innerHTML='';renderAftermathRoute(id,last)}
+async function finishAftermathRoute(id,last,continueRoute){const route=AFTERMATH_LINKS[last.ending],state=aftermathState(last.ending);state.finished=true;if(!continueRoute||!route.to){await postCharacterReply(id,continueRoute?route.reply:'Then I will wait. Delay is not the same as surrender.');persist();const b=document.createElement('button');b.className='choice';b.textContent='Return to the Story Vault for now.';b.onclick=()=>showScreen('home');document.getElementById('postChoices').innerHTML='';document.getElementById('postChoices').appendChild(b);return}postAddMsg('you',route.act);await postCharacterReply(id,route.reply);save.unlocked[route.to]=save.unlocked[route.to]||Date.now();save.lenses[route.to]=save.lenses[route.to]||'CONTINUED';save.history.push({campaign:id,ending:route.to,lens:'CONTINUED',at:Date.now(),continuedFrom:last.ending,stats:{continued:true}});maybeUnlockSecret();persist();const next=endingRecord(route.to),c=CAMPAIGNS[id];activeEndingId=route.to;showScreen('endingScreen');applyScreenArt('endingScreen');document.getElementById('endingReveal').innerHTML=`${endingArtMarkup(route.to,next[1])}<div class="mark">${c.mark}</div><div class="eyebrow">Story continued · ending recovered</div><h2>${next[1]}</h2><div class="ending-copy">${next[2]}</div><p>This outcome grew out of what happened after ${POST_STORY[last.ending].title}.</p><div class="actions"><button class="primary" onclick="openPostContact('${id}')">Keep talking</button><button class="ghost" onclick="showVault()">View ending vault</button><button class="ghost" onclick="showScreen('home')">Return to stories</button></div>`}
 /* Each later visit is a new contact session. Scenes are remembered, held back until
    the other scenes have appeared, and informed by the player's prior tone. */
 const LIVE_CONTACT_SCENES={
@@ -3780,9 +3799,9 @@ function contactSessionState(id){if(!save.contactSessions)save.contactSessions={
 function sessionPick(items){if(items.length<2)return items[0];if(window.crypto&&crypto.getRandomValues){const value=new Uint32Array(1);crypto.getRandomValues(value);return items[value[0]%items.length]}return items[Math.floor(Math.random()*items.length)]}
 function findLiveContactScene(id,sceneId){return(LIVE_CONTACT_SCENES[id]||[]).find(scene=>scene.id===sceneId)}
 function liveContactContext(id,last,state){const previous=state.decisions[state.decisions.length-1],title=(last&&POST_STORY[last.ending]&&POST_STORY[last.ending].title)||'what happened before',tone=previous&&previous.tone;if(tone==='boundaries')return'You made room for a boundary last time. I remembered.';if(tone==='caution')return'You told me not to hurry last time. I have been trying to hear the difference between caution and fear.';if(tone==='agency')return'You reminded me the choice was mine. That did not make choosing easier, but it made it possible.';if(tone==='silence')return'You left space instead of filling it. The silence held.';return state.visits>1?'The last time we spoke, the ending was '+title+'. This is not that conversation again.':'The ending was '+title+'. This is what happened after it.'}
-function startLiveContactSession(id,last){const state=contactSessionState(id),all=LIVE_CONTACT_SCENES[id]||[];let candidates=all.filter(scene=>!state.seen.includes(scene.id));if(!candidates.length){state.round++;state.seen=[];candidates=all.filter(scene=>scene.id!==state.lastScene)}if(!candidates.length)candidates=all;const scene=sessionPick(candidates);state.visits++;state.seen.push(scene.id);state.lastScene=scene.id;state.active={sceneId:scene.id,phase:'start'};persist();postAddMsg('them',scene.opening+'\n\n'+liveContactContext(id,last,state));renderLiveContactSession(id,last)}
+async function startLiveContactSession(id,last){const state=contactSessionState(id),all=LIVE_CONTACT_SCENES[id]||[];let candidates=all.filter(scene=>!state.seen.includes(scene.id));if(!candidates.length){state.round++;state.seen=[];candidates=all.filter(scene=>scene.id!==state.lastScene)}if(!candidates.length)candidates=all;const scene=sessionPick(candidates);state.visits++;state.seen.push(scene.id);state.lastScene=scene.id;state.active={sceneId:scene.id,phase:'start'};persist();await postCharacterReply(id,scene.opening+'\n\n'+liveContactContext(id,last,state));renderLiveContactSession(id,last)}
 function renderLiveContactSession(id,last){const state=contactSessionState(id),scene=findLiveContactScene(id,state.active&&state.active.sceneId),box=document.getElementById('postChoices');if(!scene){renderPostTopics(id);return}box.innerHTML='';const label=document.createElement('div');label.className='choice-section-label answer';label.textContent=state.active.phase==='start'?'Reply':'For now';box.appendChild(label);if(state.active.phase==='close'){const exit=document.createElement('button');exit.className='choice';exit.textContent='Return to the Story Vault for now.';exit.onclick=()=>showScreen('home');box.appendChild(exit);return}scene.choices.forEach((choice,index)=>{const button=document.createElement('button');button.className='choice';button.textContent=choice.t;button.onclick=()=>chooseLiveContactChoice(id,last,index);box.appendChild(button)})}
-async function chooseLiveContactChoice(id,last,index){const state=contactSessionState(id),scene=findLiveContactScene(id,state.active&&state.active.sceneId),choice=scene&&scene.choices[index];if(!choice)return;document.querySelectorAll('#postChoices .choice').forEach(button=>button.disabled=true);postAddMsg('you',choice.t);const typingNode=document.createElement('div');typingNode.className='msg them';typingNode.dataset.speaker=CAMPAIGNS[id].name;typingNode.innerHTML='<span class="typing"><span class="typing-label">typing</span><i></i><i></i><i></i></span>';document.getElementById('postChat').appendChild(typingNode);await wait(replyTypingDelay(choice.r));typingNode.remove();postAddMsg('them',choice.r);state.decisions.push({sceneId:scene.id,tone:choice.tone,choice:choice.t,at:Date.now()});state.decisions=state.decisions.slice(-16);state.active.phase='close';persist();await wait(300);postAddMsg('them',scene.closing);renderLiveContactSession(id,last)}
+async function chooseLiveContactChoice(id,last,index){const state=contactSessionState(id),scene=findLiveContactScene(id,state.active&&state.active.sceneId),choice=scene&&scene.choices[index];if(!choice)return;document.querySelectorAll('#postChoices .choice').forEach(button=>button.disabled=true);postAddMsg('you',choice.t);await postCharacterReply(id,choice.r);state.decisions.push({sceneId:scene.id,tone:choice.tone,choice:choice.t,at:Date.now()});state.decisions=state.decisions.slice(-16);state.active.phase='close';persist();await postCharacterReply(id,scene.closing);renderLiveContactSession(id,last)}
 function openPostContact(id){
  activePostCampaign=id;
  const c=CAMPAIGNS[id];
@@ -3823,9 +3842,9 @@ function renderContinuationChapter(id,ending,chapter){
 }
 async function chooseContinuationChapter(id,ending,chapter,stage,index){
  const scene=chapter[stage],choice=scene.choices[index];document.querySelectorAll('#postChoices .choice').forEach(button=>button.disabled=true);postAddMsg('you',choice.t);
- const typingNode=document.createElement('div');typingNode.className='msg them';typingNode.dataset.speaker=CAMPAIGNS[id].name;typingNode.innerHTML='<span class="typing"><span class="typing-label">typing</span><i></i><i></i><i></i></span>';document.getElementById('postChat').appendChild(typingNode);await wait(replyTypingDelay(choice.r));typingNode.remove();postAddMsg('them',choice.r);
- if(choice.action==='home'){persist();await wait(520);showScreen('home');return}
- if(!save.continuations)save.continuations={};save.continuations[ending]=choice.next;persist();await wait(350);renderContinuationChapter(id,ending,chapter);
+ await postCharacterReply(id,choice.r);
+ if(choice.action==='home'){persist();showScreen('home');return}
+ if(!save.continuations)save.continuations={};save.continuations[ending]=choice.next;persist();renderContinuationChapter(id,ending,chapter);
 }
 function renderPostTopics(id){
  const box=document.getElementById('postChoices');box.innerHTML='';const hist=campaignHistory(id);if(!hist.length){const b=document.createElement('button');b.className='choice';b.textContent='There is nothing to talk about yet.';b.onclick=()=>showScreen('home');box.appendChild(b);return}
@@ -3861,7 +3880,7 @@ async function openPostTopic(id,key,question,answer){
  const reply=postAddMsg('them',full);
  refreshContactIdentity(true);
  requestAnimationFrame(()=>{pane.scrollTo({top:Math.max(0,reply.offsetTop-18),behavior:'smooth'})});
- await wait(250);
+ await wait(messageDwellDelay(full));
  const again=document.createElement('button');
  again.className='choice';
  again.textContent='Ask something else';

@@ -1,4 +1,4 @@
-const CACHE_NAME='echo-below-story-vault-reconstruction-v12';
+const CACHE_NAME='echo-below-story-vault-pacing-v13';
 
 self.addEventListener('install',event=>{
   event.waitUntil(self.skipWaiting());

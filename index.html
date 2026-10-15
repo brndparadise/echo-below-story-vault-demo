@@ -2091,7 +2091,7 @@ body.studio-prelude-active .app{visibility:hidden}
 <script src="dialogue-engine.js"></script>
 <script>
 const SAVE_KEY='echoBelow_storyVault_lifeline25_v1';
-const DEFAULT_SAVE={saveVersion:6,unlocked:{},lenses:{},fragments:{},runs:0,history:[],secret:false,followupSeen:{},echoPartialSeen:false,echoRevealSeen:false,dialogue:{version:3,characters:{},visits:{}},contactSessions:{},aftermath:{},reconstruction:{version:1,prologueComplete:false,echoVocabulary:[],openingReply:'',asterion:{stage:'uncontacted',firstReply:'',consent:null,dueAt:0,returnSeen:false},records:{a1:{status:'disputed',consent:'pending'}}}};
+const DEFAULT_SAVE={saveVersion:6,unlocked:{},lenses:{},fragments:{},runs:0,history:[],secret:false,followupSeen:{},echoPartialSeen:false,echoRevealSeen:false,dialogue:{version:3,characters:{},visits:{}},contactSessions:{},aftermath:{},reconstruction:{version:1,prologueComplete:false,echoVocabulary:[],openingReply:'',asterion:{stage:'uncontacted',firstReply:'',consent:null,dueAt:0,returnSeen:false},medusa:{stage:'uncontacted',firstReply:'',consent:null,dueAt:0,returnSeen:false},records:{a1:{status:'disputed',consent:'pending'},m2:{status:'contested',consent:'pending'}}}};
 let save=loadSave();
 let run=null;
 let activePostCampaign=null;
@@ -2965,7 +2965,8 @@ function ensureReconstruction(){
  const base=DEFAULT_SAVE.reconstruction,current=save.reconstruction||{};save.reconstruction=current;
  Object.keys(base).forEach(key=>{if(current[key]===undefined)current[key]=structuredClone(base[key])});
  current.asterion=current.asterion||{};Object.keys(base.asterion).forEach(key=>{if(current.asterion[key]===undefined)current.asterion[key]=structuredClone(base.asterion[key])});
- current.records=current.records||{};current.records.a1=current.records.a1||{};Object.keys(base.records.a1).forEach(key=>{if(current.records.a1[key]===undefined)current.records.a1[key]=structuredClone(base.records.a1[key])});
+ current.medusa=current.medusa||{};Object.keys(base.medusa).forEach(key=>{if(current.medusa[key]===undefined)current.medusa[key]=structuredClone(base.medusa[key])});
+ current.records=current.records||{};current.records.a1=current.records.a1||{};Object.keys(base.records.a1).forEach(key=>{if(current.records.a1[key]===undefined)current.records.a1[key]=structuredClone(base.records.a1[key])});current.records.m2=current.records.m2||{};Object.keys(base.records.m2).forEach(key=>{if(current.records.m2[key]===undefined)current.records.m2[key]=structuredClone(base.records.m2[key])});
  if(!Array.isArray(current.echoVocabulary))current.echoVocabulary=[];
  return current;
 }
@@ -2974,7 +2975,7 @@ function openReconstructionChat(id,status='CONNECTED THROUGH THE ARCHIVE'){
  document.getElementById('contactName').textContent=CAMPAIGNS[id].name;
  document.getElementById('contactStatus').textContent=status;
  applyContactIdentity(id,false);
- const subtitle=document.getElementById('contactSubtitle');if(subtitle)subtitle.textContent=id==='echo'?'The Voice Inside the Record':id==='asterion'?'The Man Outside the Record':'Contact Through the Archive';
+ const subtitle=document.getElementById('contactSubtitle');if(subtitle)subtitle.textContent=id==='echo'?'The Voice Inside the Record':id==='asterion'?'The Man Outside the Record':id==='medusa'?'The Woman Outside the Legend':'Contact Through the Archive';
  document.getElementById('chat').innerHTML='';document.getElementById('choices').innerHTML='';
  const wrap=document.getElementById('chatWrap');wrap.className='chat-wrap theme-'+id;applyChatBackdrop(id,false);showScreen('chatScreen');
 }
@@ -3005,6 +3006,11 @@ function addArchiveTrace(title,body,details=[]){
 function addDisputedRecord(){
  const pane=document.getElementById('chat'),card=document.createElement('aside');card.className='disputed-record';
  card.innerHTML='<img src="conclusion-images/a1.png" alt="Recovered Asterion conclusion record"><div><small>RECOVERED RECORD A-01</small><strong>The Door Opens</strong><p>Source: official heroic account</p><p>Status: disputed</p><p>Consent: not granted</p></div>';
+ pane.appendChild(card);requestAnimationFrame(()=>pane.scrollTop=pane.scrollHeight);
+}
+function addMedusaRecord(){
+ const pane=document.getElementById('chat'),card=document.createElement('aside');card.className='disputed-record';
+ card.innerHTML='<img src="conclusion-images/m2.png" alt="Recovered Medusa conclusion record"><div><small>RECOVERED RECORD M-02</small><strong>The Witness</strong><p>Source: anonymous transcription</p><p>Status: authorship contested</p><p>Consent: denied</p></div>';
  pane.appendChild(card);requestAnimationFrame(()=>pane.scrollTop=pane.scrollHeight);
 }
 async function startEchoInterference(){
@@ -3059,7 +3065,31 @@ async function startAsterionReturn(){
  const recon=ensureReconstruction(),a=recon.asterion;openReconstructionChat('asterion','ASTERION REOPENED THE CHANNEL');a.returnSeen=true;a.stage='returned';persist();
  const line=a.consent==='ask'?'I wrote the statement. Three sentences. Mine. The Archive tried to make them sound nobler, so Echo put the plain words back.':a.consent==='public'?'The notice disappeared before noon. That is not the same as a correction. Somebody is cleaning the record, and I do not think it is for my sake.':'The public copy vanished. The sealed copy changed while nobody was looking. Echo says that should be impossible.';
  await sequence([['them','I said I would return if I chose to. I chose to.'],['them',line],['them','A child in the market drew horns on the empty space where the notice used to be. Then she wrote my name underneath. I do not know yet whether that is kindness. It is new.']]);
- renderReconstructionInput('Answer Asterion...',async text=>{addMsg('you',text);a.returnReply=text;persist();const reply=/kind|good|hope|better/i.test(text)?'Maybe. I am trying not to demand that every new thing prove itself immediately.':'That answer does not settle it. Good. I am tired of sentences that arrive already finished.';const t=typing();await wait(replyTypingDelay(reply));t.remove();addMsg('them',reply);await sequence([['them','Echo found another contradiction. This one has Medusa\'s name on it. I think she should decide whether you see it.']]);a.stage='milestone_complete';persist();renderReconstructionChoices('Contact continues later',[{text:'Return to the Archive.',action:()=>showScreen('home')}])},['What did the child mean by it?','How do you want your statement stored?','You do not have to decide what it means yet.']);
+ renderReconstructionInput('Answer Asterion...',async text=>{addMsg('you',text);a.returnReply=text;persist();const reply=/kind|good|hope|better/i.test(text)?'Maybe. I am trying not to demand that every new thing prove itself immediately.':'That answer does not settle it. Good. I am tired of sentences that arrive already finished.';const t=typing();await wait(replyTypingDelay(reply));t.remove();addMsg('them',reply);await sequence([['them','Echo found another contradiction. This one has Medusa\'s name on it. I think she should decide whether you see it.']]);a.stage='milestone_complete';const m=recon.medusa;m.stage='consent_pending';m.dueAt=Date.now()+SIGNAL_RETURN_DELAY;persist();setTimeout(()=>{updateStats();toast('MEDUSA · CONTACT AUTHORIZED')},SIGNAL_RETURN_DELAY);renderReconstructionChoices('Contact continues later',[{text:'Return to the Archive.',action:()=>showScreen('home')}])},['What did the child mean by it?','How do you want your statement stored?','You do not have to decide what it means yet.']);
+}
+function medusaReplyTo(text){
+ const value=text.toLowerCase();
+ if(/ask|permission|consent|want|choose|choice/.test(value))return 'Good. Consent permits a question. It does not guarantee an answer, and it does not turn access into ownership.';
+ if(/listen|believe|hear/.test(value))return 'Listening is permitted. Belief is yours to manage. Neither gives you the right to finish my sentence.';
+ if(/correct|change|fix|record|archive/.test(value))return 'You may help me examine the record. You may not improve my account until it resembles the lesson you expected.';
+ return 'That answer is imperfect enough to be yours. Keep it provisional. I may give you a reason to revise it.';
+}
+async function startReconstructionMedusa(){
+ const recon=ensureReconstruction(),m=recon.medusa;if(m.dueAt>Date.now()){toast('MEDUSA · CONSENT PENDING');showScreen('home');return}if(m.dueAt&&m.dueAt<=Date.now()&&!m.returnSeen&&m.stage==='waiting'){startMedusaReturn();return}if(m.stage==='uncontacted'||m.stage==='consent_pending')m.stage='authorized';
+ openReconstructionChat('medusa','CONTACT AUTHORIZED BY MEDUSA');m.stage='first_contact';m.dueAt=0;persist();
+ await sequence([['them','Echo asked whether I consented to this channel. She had to borrow the word consent. That is not the same as understanding it, but it is a promising start.'],['them','The Archive has a statement under my name: "I became what they feared."'],['them','I did not write it. The sentence is elegant. That is how I know it was made for an audience.'],['them','Before we open the record, tell me what you think consent permits you to do.']]);
+ renderReconstructionInput('Type to Medusa...',async text=>{addMsg('you',text);m.firstReply=text;persist();const reply=medusaReplyTo(text);const t=typing();await wait(replyTypingDelay(reply));t.remove();addMsg('them',reply);await sequence([['them','Now you may see the record. Seeing it does not make it yours.']]);addMedusaRecord();await sequence([['them','The transcription turns my refusal into a confession and calls that witnessing.'],['them','What would you preserve?']]);renderReconstructionChoices('Medusa is waiting for an answer',[
+   {text:'Your objection, in your words. What should it say?',action:()=>resolveMedusaConsent('ask')},
+   {text:'Keep the forgery visible beside your correction.',action:()=>resolveMedusaConsent('preserve')},
+   {text:'Delete the false statement completely.',action:()=>resolveMedusaConsent('delete')}
+  ])},['I can ask. I cannot decide for you.','I can listen and leave the choice with you.','Consent permits only what you explicitly allow.']);
+}
+async function resolveMedusaConsent(choice){
+ const recon=ensureReconstruction(),m=recon.medusa;m.consent=choice;recon.records.m2.consent=choice;recon.records.m2.status=choice==='ask'?'awaiting_medusa':choice==='preserve'?'correction_requested':'deletion_requested';addMsg('you',choice==='ask'?'What should your objection say?':choice==='preserve'?'Keep the forgery visible beside your correction.':'Delete the false statement completely.');persist();
+ const replies={ask:'Write this exactly: I refused their sentence before I refused their fear. The distinction belongs to me.',preserve:'Perhaps. A forgery beside a correction can teach people how theft works. It can also make me share a page with the theft forever. Mark the question unresolved.',delete:'No. Deletion would make the theft harder to prove. I want the false sentence preserved as evidence, not inherited as truth.'};const t=typing();await wait(replyTypingDelay(replies[choice]));t.remove();addMsg('them',replies[choice]);await sequence([['them','My sisters are at the gate. I am leaving the channel because I have somewhere to be, not because this conversation is finished.']]);document.getElementById('contactStatus').textContent='CHANNEL CLOSED';m.stage='waiting';m.dueAt=Date.now()+SIGNAL_RETURN_DELAY;persist();setTimeout(()=>{updateStats();toast('MEDUSA · NEW SIGNAL')},SIGNAL_RETURN_DELAY);await wait(750);showScreen('home');
+}
+async function startMedusaReturn(){
+ const recon=ensureReconstruction(),m=recon.medusa;openReconstructionChat('medusa','MEDUSA REOPENED THE CHANNEL');m.returnSeen=true;m.stage='returned';persist();const line=m.consent==='ask'?'Echo stored my exact sentence. The Archive tried to classify it as commentary. I made her change the field to authorship.':m.consent==='preserve'?'The forgery and my correction are still side by side. Someone copied only the forgery. That is the risk I was naming.':'The false statement survived the deletion request. Good. Now we know the Archive protects its useful lies.';await sequence([['them','I said the conversation was not finished.'],['them',line],['them','A courier arrived with a shield bearing my face. Not my head. My face. The difference appears to have frightened everyone.']]);renderReconstructionInput('Answer Medusa...',async text=>{addMsg('you',text);m.returnReply=text;persist();const reply=/what|why|who|courier|shield/i.test(text)?'That is the correct question. The courier will not say who commissioned it. My sisters are following the payment instead.':'Do not decide what it means yet. Meaning is where people hide motive when they have not found evidence.';const t=typing();await wait(replyTypingDelay(reply));t.remove();addMsg('them',reply);await sequence([['them','Echo says the shield appears in a record dated tomorrow. That is no longer only my problem.']]);m.stage='milestone_complete';persist();renderReconstructionChoices('The Archive remains open',[{text:'Return to Echo.',action:()=>startEchoCheckin()},{text:'Return to the Archive.',action:()=>showScreen('home')}])},['Who commissioned the shield?','What changed in the Archive?','Do you want Echo to open the tomorrow record?']);
 }
 async function startEchoCheckin(){
  const recon=ensureReconstruction();openReconstructionChat('echo','ARCHIVE CONTACT');
@@ -3191,13 +3221,13 @@ function applyReconstructionHome(){
  if(grid&&echoCard&&grid.firstElementChild!==echoCard)grid.insertBefore(echoCard,grid.firstElementChild);
  if(echoCard){echoCard.classList.remove('echo-locked','echo-partial');echoCard.classList.add('echo-unlocked');echoCard.querySelector('.tag').textContent='Archive contact';echoCard.querySelector('.subtitle').textContent='The Voice Inside the Record';echoCard.querySelector('.blurb').textContent='Echo found you first. Every other contact passes through a language she is still learning to use.';document.getElementById('echoLockState').textContent='CONTACT ACTIVE';const b=document.getElementById('echoOpenButton');b.textContent='Answer Echo';b.disabled=false;b.onclick=()=>startEchoCheckin();const after=document.getElementById('afterEcho');if(after)after.hidden=true}
  if(aCard){aCard.querySelector('.subtitle').textContent='The Man Outside the Record';aCard.querySelector('.blurb').textContent='The Archive says Asterion died long ago. A living man has objected to the record.';const b=aCard.querySelector('.card-actions button');const state=recon.asterion;b.textContent=state.dueAt>Date.now()?'Signal quiet':state.dueAt&&!state.returnSeen?'New signal':state.stage==='uncontacted'?'Open contact':'Continue contact';b.disabled=state.dueAt>Date.now();const after=document.getElementById('afterAsterion');if(after)after.hidden=true}
- if(mCard){mCard.classList.add('reconstruction-pending');mCard.querySelector('.subtitle').textContent='Contact Not Yet Authorized';mCard.querySelector('.blurb').textContent='Echo found a contradiction carrying Medusa\'s name. Medusa has not granted access to it.';const b=mCard.querySelector('.card-actions button');b.textContent='Awaiting consent';b.disabled=true;const after=document.getElementById('afterMedusa');if(after)after.hidden=true}
+ if(mCard){const state=recon.medusa,available=state.stage!=='uncontacted'&&state.dueAt<=Date.now();mCard.classList.toggle('reconstruction-pending',!available);mCard.querySelector('.subtitle').textContent=available?'The Woman Outside the Legend':'Contact Not Yet Authorized';mCard.querySelector('.blurb').textContent=available?'A statement in Medusa\'s name was forged by the Archive. She has authorized one conversation about it.':'Echo found a contradiction carrying Medusa\'s name. Medusa has not granted access to it.';const b=mCard.querySelector('.card-actions button');b.textContent=state.dueAt>Date.now()?(state.stage==='consent_pending'?'Consent pending':'Signal quiet'):available?(state.returnSeen?'Continue contact':'New signal'):'Awaiting consent';b.disabled=!available;const after=document.getElementById('afterMedusa');if(after)after.hidden=true}
 }
 function startCampaign(id){
  const recon=ensureReconstruction();
  if(recon.prologueComplete&&id==='asterion'){startReconstructionAsterion();return}
  if(recon.prologueComplete&&id==='echo'){startEchoCheckin();return}
- if(recon.prologueComplete&&id==='medusa'){toast('MEDUSA · CONTACT NOT YET AUTHORIZED');return}
+ if(recon.prologueComplete&&id==='medusa'){startReconstructionMedusa();return}
  if(channelSignalState(id)==='quiet'){toast(CAMPAIGNS[id].name.toUpperCase()+' · CHANNEL CLOSED');return}
  const activeSignal=save.dialogue&&save.dialogue.active;if(activeSignal&&activeSignal.campaign===id&&channelSignalState(id)==='ready'){const character=engineCharacter(id),key='return:'+activeSignal.node;if(character.events&&character.events[key])character.events[key].status='delivered';persist()}
  if(id==='echo'&&echoAccessState()!=='unlocked'){

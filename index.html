@@ -2995,6 +2995,10 @@ function listenerProgress(){
  const fragments=Object.keys(save.fragments||{}).length;
  return {contacts,fragments,ready:contacts===3&&fragments>=6};
 }
+const SIGNAL_RETURN_DELAY=8000;
+function channelSignalState(id){const active=save.dialogue&&save.dialogue.active;if(!active||active.campaign!==id)return null;const node=window.StoryVaultDialogue&&window.StoryVaultDialogue.NODES[active.node];if(!node||!node.initiated)return null;const character=save.dialogue.characters&&save.dialogue.characters[id];const signal=character&&character.events&&character.events['return:'+active.node];if(!signal)return null;return signal.dueAt>Date.now()?'quiet':'ready'}
+function signalButtonFor(id){return document.querySelector(`button[onclick="startCampaign('${id}')"]`)||(id==='echo'?document.getElementById('echoOpenButton'):null)}
+function scheduleChannelReturn(id,nodeId){const character=engineCharacter(id);const key='return:'+nodeId;character.events[key]={id:key,dueAt:Date.now()+SIGNAL_RETURN_DELAY,status:'pending'};setTimeout(()=>{persist();updateStats();toast(CAMPAIGNS[id].name.toUpperCase()+' · NEW SIGNAL')},SIGNAL_RETURN_DELAY);persist();updateStats()}
 function updateStats(){
  const n=Object.keys(save.unlocked||{}).length;
  const listener=listenerProgress();
@@ -3004,10 +3008,12 @@ function updateStats(){
  document.getElementById('sSecret').textContent=save.secret?'OPEN':listener.contacts===3?listener.fragments+' / 6':'LOCKED';
  const secretLabel=document.getElementById('sSecretLabel');
  if(secretLabel)secretLabel.textContent=save.secret?'listener record':listener.contacts<3?'listener record · complete all threads':'listener record · recover 6 fragments';
- ['asterion','medusa','echo'].forEach(id=>{const b=document.getElementById('after'+id[0].toUpperCase()+id.slice(1));if(!b)return;const count=(save.history||[]).filter(x=>x.campaign===id).length;b.classList.toggle('available',count>0);if(count>0)b.textContent='Talk again';});
+ ['asterion','medusa','echo'].forEach(id=>{const b=document.getElementById('after'+id[0].toUpperCase()+id.slice(1)),main=signalButtonFor(id),signal=channelSignalState(id);if(b){const count=(save.history||[]).filter(x=>x.campaign===id).length;b.classList.toggle('available',count>0);if(count>0)b.textContent='Talk again'}if(main&&signal==='quiet'){main.textContent='Signal quiet';main.disabled=true;main.setAttribute('aria-label',CAMPAIGNS[id].name+' has closed the channel for now')}else if(main&&signal==='ready'){main.textContent='New signal';main.disabled=false;main.setAttribute('aria-label','Open new signal from '+CAMPAIGNS[id].name)}});
  updateEchoAccess();
 }
 function startCampaign(id){
+ if(channelSignalState(id)==='quiet'){toast(CAMPAIGNS[id].name.toUpperCase()+' · CHANNEL CLOSED');return}
+ const activeSignal=save.dialogue&&save.dialogue.active;if(activeSignal&&activeSignal.campaign===id&&channelSignalState(id)==='ready'){const character=engineCharacter(id),key='return:'+activeSignal.node;if(character.events&&character.events[key])character.events[key].status='delivered';persist()}
  if(id==='echo'&&echoAccessState()!=='unlocked'){
   tryStartEcho();
   return;
@@ -3073,7 +3079,7 @@ async function chooseEngine(choiceId){
  run.engineNode=choice.nextNode;const next=Engine.NODES[run.engineNode];Engine.enter(character,next);persist();
  save.dialogue.active={campaign:run.id,node:run.engineNode,at:Date.now()};persist();
  document.getElementById('choices').innerHTML='';
- if(next.initiated){document.getElementById('contactStatus').textContent='SIGNAL QUIET';await wait(650)}
+ if(next.initiated){document.getElementById('contactStatus').textContent='CHANNEL CLOSED';scheduleChannelReturn(run.id,next.id);await wait(650);showScreen('home');return}
  await renderEngineNode();
 }
 function renderEngineEndingGate(node){

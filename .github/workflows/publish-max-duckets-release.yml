@@ -1,0 +1,42 @@
+name: Publish installable Max Duckets APK as Release
+on:
+  workflow_dispatch:
+  push:
+    branches: [max-duckets-apk-download]
+    paths:
+      - '.github/workflows/publish-max-duckets-release.yml'
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the APK
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          p=Path('downloads/Max_Duckets_v1_6_1_approved_icon.apk')
+          assert p.is_file(), 'Missing APK'
+          assert p.stat().st_size == 7642779, 'APK size mismatch'
+          assert hashlib.sha256(p.read_bytes()).hexdigest() == '2bfc945576e679570fe9a324af923549b84d2566411891a5a2d8a59ae13a827b'
+          print('Verified installable APK:', p)
+          PY
+      - name: Publish GitHub Release asset with download headers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          TAG='max-duckets-v1.6.1'
+          FILE='downloads/Max_Duckets_v1_6_1_approved_icon.apk'
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$FILE" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" "$FILE" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target max-duckets-apk-download \
+              --title "Max Duckets v1.6.1 Android" \
+              --notes "Offline Android game, with the approved Max Duckets icon. Download the APK asset below, open it from Files > Downloads, then approve installation. Android only. Debug-signed, not a Play Store package."
+          fi

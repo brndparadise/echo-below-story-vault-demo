@@ -1,0 +1,43 @@
+name: Assemble Max Duckets public APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [max-duckets-apk-download]
+    paths:
+      - '.github/workflows/assemble-max-duckets-apk.yml'
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct and validate installable Max Duckets APK
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64, hashlib, json
+          from pathlib import Path
+          src = Path('max-duckets-transfer')
+          manifest = json.loads((src/'manifest.json').read_text())
+          parts = []
+          for i in range(manifest['parts']):
+              parts.append((src / f'part-{i:02d}.txt').read_text())
+          data = base64.b64decode(''.join(parts), validate=True)
+          assert len(data) == manifest['size_bytes'], 'APK size mismatch'
+          assert hashlib.sha256(data).hexdigest() == manifest['sha256'], 'APK checksum mismatch'
+          assert data[:2] == b'PK', 'Not an APK archive'
+          dest = Path('downloads/Max_Duckets_v1_6_1_approved_icon.apk')
+          dest.parent.mkdir(exist_ok=True)
+          dest.write_bytes(data)
+          print('APK verified:', len(data), 'bytes', 'sha256:', manifest['sha256'])
+          PY
+      - name: Publish verified APK to isolated public download branch
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add downloads/Max_Duckets_v1_6_1_approved_icon.apk
+          git rm -r max-duckets-transfer
+          git commit -m 'Publish verified Max Duckets v1.6.1 Android APK [skip ci]'
+          git push origin HEAD:max-duckets-apk-download
